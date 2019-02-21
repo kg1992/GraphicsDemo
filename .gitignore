@@ -1,0 +1,5 @@
+GraphicsDemo/Debug/*
+.vs/
+GraphicsDemo/GraphicsDemo.vcxproj.user
+GraphicsDemo/GraphicsDemo.vcxproj.filters
+Debug/
