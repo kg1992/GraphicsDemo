@@ -1,6 +1,7 @@
 #include "System.h"
 #include "Errors.h"
-#include "GL.h"
+#include "GL/glew.h"
+#include <GL/GL.h>
 
 System::System() : m_hwnd(NULL), m_hdc(NULL), m_hglrc(NULL), m_quit(false)
 {
@@ -48,7 +49,6 @@ bool System::Init()
 
     ShowWindow(hwnd, SW_SHOW);
 
-
     m_hwnd = hwnd;
     return true;
 }
@@ -65,9 +65,8 @@ void System::Loop()
             DispatchMessage(&msg);
         }
 
-        // Simply clear the window with red
-        static const GLfloat red[] = { 1.0f, 0.0f, 0.0f, 1.0f };
-        glClearBufferfv(GL_COLOR, 0, red);
+        Render();
+
     }
 }
 
@@ -118,7 +117,6 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
     case WM_CREATE:
     {
-
         PIXELFORMATDESCRIPTOR pfd =
         {
             sizeof(PIXELFORMATDESCRIPTOR),
@@ -167,13 +165,23 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         }
 
         std::string glVersion((char*)glGetString(GL_VERSION));
-        SetWindowTextA(hwnd, (std::string("Graphics Demo ( OpenGL Version : ") + glVersion + " )").c_str());
+        BOOL result = SetWindowTextA(hwnd, (std::string("Graphics Demo ( OpenGL Version : ") + glVersion + " )").c_str());
+        if (result == FALSE) {
+            HandleError(L"SetWindowText Fail.");
+        }
+
+        GLenum err = glewInit();
+        if (GLEW_OK != err)
+        {
+            /* Problem: glewInit failed, something is seriously wrong. */
+            HandleGLError("glewInit failed", err);
+        }
+        fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
         System::Instance()->m_hdc = hdc;
         System::Instance()->m_hglrc = hglrc;
-        
     }
-        break;
+    break;
 
     case WM_CLOSE:
     {
@@ -213,4 +221,8 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 void System::SetQuitFlag()
 {
     m_quit = true;
+}
+
+void System::Render()
+{
 }
