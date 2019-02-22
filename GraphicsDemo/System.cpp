@@ -2,6 +2,8 @@
 #include "Errors.h"
 #include "GL/glew.h"
 #include <GL/GL.h>
+#include <TCHAR.h>
+#include "Clock.h"
 
 System::System() : m_hwnd(NULL), m_hdc(NULL), m_hglrc(NULL), m_quit(false)
 {
@@ -55,18 +57,22 @@ bool System::Init()
 
 void System::Loop()
 {
-    MSG msg;
     while (m_quit == false)
     {
+        Clock clock;
+        MSG msg;
         ZeroMemory(&msg, sizeof(msg));
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-
         Render();
-
+        float passedTime;
+        do {
+            passedTime = clock.GetSec();
+        } while (passedTime < (1.0f / 60));
+        int fps = static_cast<int>(1 / passedTime);
     }
 }
 

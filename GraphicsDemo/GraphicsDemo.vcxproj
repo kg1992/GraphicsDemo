@@ -143,11 +143,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Clock.h" />
     <ClInclude Include="Errors.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="System.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Clock.cpp" />
     <ClCompile Include="Errors.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="System.cpp" />
