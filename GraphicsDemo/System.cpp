@@ -1,9 +1,9 @@
 #include "System.h"
 #include "Errors.h"
-#include "GL/glew.h"
-#include <GL/GL.h>
+#include "GL/glad.h"
 #include <TCHAR.h>
 #include <fstream>
+#include <iostream>
 
 namespace
 {
@@ -12,7 +12,7 @@ namespace
 
     std::string GetShaderInfoLog(GLuint shader)
     {
-        GLsizei bufSize = 0x1000;
+        GLsizei bufSize;
 
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &bufSize);
 
@@ -28,7 +28,7 @@ namespace
 
     std::string GetProgramInfoLog(GLuint program)
     {
-        GLsizei bufSize = 0x1000;
+        GLsizei bufSize;
 
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufSize);
 
@@ -231,21 +231,24 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
             return 0;
         }
 
-        glewExperimental = GL_TRUE;
-        GLenum err = glewInit();
-        if (GLEW_OK != err)
-        {
-            /* Problem: glewInit failed, something is seriously wrong. */
-            HandleGLError("glewInit failed", err);
-            return 0;
-        }
+        gladLoadGL();
 
-        std::string glewVersion = (const char*)glewGetString(GLEW_VERSION);
-        std::string glVersion = (const char*)glGetString(GL_VERSION);
-        BOOL result = SetWindowTextA(hwnd, (std::string("Graphics Demo ( OpenGL : ") + glVersion + " , GLEW : " + glewVersion + " )").c_str());
-        if (result == FALSE) {
-            HandleError(L"SetWindowText Fail.");
+        if (glDebugMessageCallback) {
+            std::cout << "Register OpenGL debug callback " << std::endl;
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            glDebugMessageCallback(OpenglCallbackFunction, nullptr);
+            GLuint unusedIds = 0;
+            glDebugMessageControl(GL_DONT_CARE,
+                GL_DONT_CARE,
+                GL_DONT_CARE,
+                0,
+                &unusedIds,
+                true);
         }
+        else
+            std::cout << "glDebugMessageCallback not available" << std::endl;
+
+        std::cout << "GLAD initialized" << std::endl;
 
         GLuint vertexShader = CompileShaderFromSourceFile(GL_VERTEX_SHADER, "vs.glsl");
         GLuint fragmentShader = CompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "fs.glsl");
@@ -279,6 +282,25 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         
         System::Instance()->m_hdc = hdc;
         System::Instance()->m_hglrc = hglrc;
+
+        GLuint buffer;
+
+        glGenBuffers(1, &buffer);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+
+        glBufferStorage(GL_ARRAY_BUFFER, 1024 * 1024, NULL, GL_MAP_WRITE_BIT);
+
+        const float data[] =
+        {
+             0.25, -0.25, 0.5, 1.0,
+            -0.25, -0.25, 0.5, 1.0,
+             0.25, 0.25, 0.5, 1.0
+        };
+
+        // Put the data into the buffer at offset zero
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(data), data);
+        
     }
     break;
 
