@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 #include "Singleton.h"
+#include "Clock.h"
 
 class System : public Singleton<System>
 {
@@ -20,6 +21,8 @@ private:
     HDC m_hdc;
     HGLRC m_hglrc;
     bool m_quit;
+    Clock m_clock;
+    float m_lastFrameEndTime;
 
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 

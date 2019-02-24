@@ -3,9 +3,64 @@
 #include "GL/glew.h"
 #include <GL/GL.h>
 #include <TCHAR.h>
-#include "Clock.h"
+#include <fstream>
 
-System::System() : m_hwnd(NULL), m_hdc(NULL), m_hglrc(NULL), m_quit(false)
+namespace
+{
+    GLuint s_program;
+    GLuint s_vertexArrayObject;
+
+    std::string GetShaderInfoLog(GLuint shader)
+    {
+        GLsizei bufSize = 0x1000;
+
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &bufSize);
+
+        std::vector<GLchar> buf;
+        buf.resize(bufSize + 1);
+
+        // Get InfoLog
+        glGetShaderInfoLog(shader, bufSize, nullptr, (GLchar*)buf.data());
+
+        // return buffer
+        return std::string(buf.data());
+    }
+
+    std::string GetProgramInfoLog(GLuint program)
+    {
+        GLsizei bufSize = 0x1000;
+
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufSize);
+
+        std::vector<GLchar> buf;
+        buf.resize(bufSize + 1);
+
+        // Get InfoLog
+        glGetProgramInfoLog(program, bufSize, nullptr, (GLchar*)buf.data());
+
+        // return buffer
+        return std::string(buf.data());
+    }
+
+    GLuint CompileShaderFromSourceFile(GLenum type, const std::string& fileName)
+    {
+        GLuint shader = glCreateShader(type);
+        std::ifstream fin(fileName);
+        std::vector<GLchar> source((std::istreambuf_iterator<char>(fin)), std::istreambuf_iterator<char>());
+        GLchar* pSource = source.data();
+        GLint sourceSize = static_cast<GLint>(source.size());
+        glShaderSource(shader, 1, &pSource, &sourceSize);
+        glCompileShader(shader);
+        std::string infoLog = GetShaderInfoLog(shader);
+        if (infoLog.size() != 0) {
+            OutputDebugStringA(infoLog.c_str());
+            OutputDebugStringA("\n");
+        }
+        return shader;
+    }
+}
+
+System::System() : m_hwnd(NULL), m_hdc(NULL), m_hglrc(NULL), m_quit(false), m_clock(), m_lastFrameEndTime(0)
 {
 }
 
@@ -52,14 +107,18 @@ bool System::Init()
     ShowWindow(hwnd, SW_SHOW);
 
     m_hwnd = hwnd;
+
+    OutputDebugStringA(reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS)));
+
     return true;
 }
 
 void System::Loop()
 {
+    m_lastFrameEndTime = m_clock.GetSec();
+
     while (m_quit == false)
     {
-        Clock clock;
         MSG msg;
         ZeroMemory(&msg, sizeof(msg));
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -69,15 +128,17 @@ void System::Loop()
         }
         Render();
         float passedTime;
-        do {
-            passedTime = clock.GetSec();
-        } while (passedTime < (1.0f / 60));
-        int fps = static_cast<int>(1 / passedTime);
+        do { passedTime = m_clock.GetSec() - m_lastFrameEndTime; } while (passedTime < (1.0f / 60));
+        int fps = static_cast<int>(std::round(1 / passedTime));
+        m_lastFrameEndTime = m_clock.GetSec();
     }
 }
 
 void System::Free()
 {
+    glDeleteVertexArrays(1, &s_vertexArrayObject);
+    glDeleteProgram(s_program);
+
     if (!wglMakeCurrent(NULL, NULL))
     {
         HandleError(L"wglMakeCurrent fail");
@@ -170,20 +231,52 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
             return 0;
         }
 
-        std::string glVersion((char*)glGetString(GL_VERSION));
-        BOOL result = SetWindowTextA(hwnd, (std::string("Graphics Demo ( OpenGL Version : ") + glVersion + " )").c_str());
-        if (result == FALSE) {
-            HandleError(L"SetWindowText Fail.");
-        }
-
+        glewExperimental = GL_TRUE;
         GLenum err = glewInit();
         if (GLEW_OK != err)
         {
             /* Problem: glewInit failed, something is seriously wrong. */
             HandleGLError("glewInit failed", err);
+            return 0;
         }
-        fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
+        std::string glewVersion = (const char*)glewGetString(GLEW_VERSION);
+        std::string glVersion = (const char*)glGetString(GL_VERSION);
+        BOOL result = SetWindowTextA(hwnd, (std::string("Graphics Demo ( OpenGL : ") + glVersion + " , GLEW : " + glewVersion + " )").c_str());
+        if (result == FALSE) {
+            HandleError(L"SetWindowText Fail.");
+        }
+
+        GLuint vertexShader = CompileShaderFromSourceFile(GL_VERTEX_SHADER, "vs.glsl");
+        GLuint fragmentShader = CompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "fs.glsl");
+        //GLuint tessControlShader = CompileShaderFromSourceFile(GL_TESS_CONTROL_SHADER, "tcs.glsl");
+        //GLuint tessEvalShader = CompileShaderFromSourceFile(GL_TESS_EVALUATION_SHADER, "tes.glsl");
+        //GLuint geometryShader = CompileShaderFromSourceFile(GL_GEOMETRY_SHADER, "gs.glsl");
+
+        GLuint program = glCreateProgram();
+        glAttachShader(program, vertexShader);
+        glAttachShader(program, fragmentShader);
+        //glAttachShader(program, tessControlShader);
+        //glAttachShader(program, tessEvalShader);
+        //glAttachShader(program, geometryShader);
+        glLinkProgram(program);
+        
+        std::string programInfoLog = GetProgramInfoLog(program);
+        if (programInfoLog.size() != 0) {
+            OutputDebugStringA(GetProgramInfoLog(program).c_str());
+            OutputDebugStringA("\n");
+        }
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+        //glDeleteShader(tessControlShader);
+        //glDeleteShader(tessEvalShader);
+        //glDeleteShader(geometryShader);
+
+        s_program = program;
+
+        glGenVertexArrays(1, &s_vertexArrayObject);
+        glBindVertexArray(s_vertexArrayObject);
+        
         System::Instance()->m_hdc = hdc;
         System::Instance()->m_hglrc = hglrc;
     }
@@ -231,4 +324,27 @@ void System::SetQuitFlag()
 
 void System::Render()
 {
+    GLfloat currentTime = m_clock.GetSec();
+    GLfloat color[] = { 0, 0.8f, 0.7f, 1.0f };
+    GLfloat color2[] = { std::sin(currentTime) * 0.5f + 0.5f, std::cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
+
+    glPointSize(5.0f);
+    glClearBufferfv(GL_COLOR, 0, color);
+
+    glUseProgram(s_program);
+
+    GLfloat attrib[] = {
+        std::sin(currentTime) * 0.5f,
+        std::cos(currentTime) * 0.6f,
+        0.0f, 0.0f };
+
+    glVertexAttrib4fv(0, attrib);
+    glVertexAttrib4fv(1, color2);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    // glDrawArrays(GL_PATCHES, 0, 3);
+
+    // Double Buffering
+    SwapBuffers(m_hdc);
+
 }
