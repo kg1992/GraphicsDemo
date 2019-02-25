@@ -1,22 +1,20 @@
-#version 410 core
+#version 430 core
 
-layout (location = 0) in vec4 offset;
-layout (location = 1) in vec4 color;
+in vec4 position;
 
-out vec4 vs_color;
+out VS_OUT
+{
+	vec4 color;
+} vs_out;
 
+uniform mat4 mvMatrix;
+uniform mat4 projMatrix;
+uniform mat4 eyeMatrix;
 
 void main(void)
 {
-	const vec4 vertices[3] = vec4[3](vec4( 0.25, -0.25, 0.5, 1.0),
-									 vec4(-0.25, -0.25, 0.5, 1.0),
-									 vec4( 0.25,  0.25, 0.5, 1.0));
-
-	const vec4 colors[] = vec4[3](vec4(1.0, 0.0, 0.0, 1.0),
-                                  vec4(0.0, 1.0, 0.0, 1.0),
-                                  vec4(0.0, 0.0, 1.0, 1.0));
-
-	gl_Position = vertices[gl_VertexID] + offset;
-
-	vs_color = colors[gl_VertexID];
+	// gl_Position = position;
+	// gl_Position = projMatrix * position;
+	gl_Position = projMatrix * eyeMatrix * mvMatrix * position;
+	vs_out.color = position * 2.0 + vec4(0.5,0.5,0.5,0.0);
 }

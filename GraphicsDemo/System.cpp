@@ -3,12 +3,20 @@
 #include "GL/glad.h"
 #include <TCHAR.h>
 #include <fstream>
-#include <iostream>
+#include <iostream> 
+#include <glm.hpp>
+#include <ext.hpp>
 
 namespace
 {
     GLuint s_program;
-    GLuint s_vertexArrayObject;
+    GLuint s_buffer;
+    GLuint s_vao;
+    GLint s_mvLocation;
+    GLint s_projLocation;
+    GLint s_eyeLocation;
+    glm::mat4 s_projectionMatrix = glm::identity<glm::mat4>();
+    glm::mat4 s_eyeMatrix = glm::identity<glm::mat4>();
 
     std::string GetShaderInfoLog(GLuint shader)
     {
@@ -53,8 +61,7 @@ namespace
         glCompileShader(shader);
         std::string infoLog = GetShaderInfoLog(shader);
         if (infoLog.size() != 0) {
-            OutputDebugStringA(infoLog.c_str());
-            OutputDebugStringA("\n");
+            std::cout << infoLog << std::endl;
         }
         return shader;
     }
@@ -108,8 +115,6 @@ bool System::Init()
 
     m_hwnd = hwnd;
 
-    OutputDebugStringA(reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS)));
-
     return true;
 }
 
@@ -136,7 +141,8 @@ void System::Loop()
 
 void System::Free()
 {
-    glDeleteVertexArrays(1, &s_vertexArrayObject);
+    glDeleteBuffers(1, &s_buffer);
+    glDeleteVertexArrays(1, &s_vao);
     glDeleteProgram(s_program);
 
     if (!wglMakeCurrent(NULL, NULL))
@@ -233,6 +239,13 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
         gladLoadGL();
 
+        std::string glVersion((char*)glGetString(GL_VERSION));
+        BOOL result = SetWindowTextA(hwnd, (std::string("Graphics Demo ( OpenGL Version : ") + glVersion + " )").c_str());
+        if (result == FALSE) {
+            HandleError(L"SetWindowText Fail.");
+        }
+        std::cout << "OpenGL version : " << glVersion << std::endl;
+
         if (glDebugMessageCallback) {
             std::cout << "Register OpenGL debug callback " << std::endl;
             glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -248,7 +261,8 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         else
             std::cout << "glDebugMessageCallback not available" << std::endl;
 
-        std::cout << "GLAD initialized" << std::endl;
+        System::Instance()->m_hdc = hdc;
+        System::Instance()->m_hglrc = hglrc;
 
         GLuint vertexShader = CompileShaderFromSourceFile(GL_VERTEX_SHADER, "vs.glsl");
         GLuint fragmentShader = CompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "fs.glsl");
@@ -266,8 +280,9 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         
         std::string programInfoLog = GetProgramInfoLog(program);
         if (programInfoLog.size() != 0) {
-            OutputDebugStringA(GetProgramInfoLog(program).c_str());
-            OutputDebugStringA("\n");
+
+            std::cout << " * Program Info Log : " << std::endl
+                      << GetProgramInfoLog(program) << std::endl;
         }
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
@@ -275,32 +290,89 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         //glDeleteShader(tessEvalShader);
         //glDeleteShader(geometryShader);
 
+        s_mvLocation = glGetUniformLocation(program, "mvMatrix");
+        GET_AND_HANDLE_GL_ERROR();
+        s_projLocation = glGetUniformLocation(program, "projMatrix");
+        GET_AND_HANDLE_GL_ERROR();
+        s_eyeLocation = glGetUniformLocation(program, "eyeMatrix");
+        GET_AND_HANDLE_GL_ERROR();
+
         s_program = program;
 
-        glGenVertexArrays(1, &s_vertexArrayObject);
-        glBindVertexArray(s_vertexArrayObject);
+        glGenVertexArrays(1, &s_vao);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glBindVertexArray(s_vao);
+        GET_AND_HANDLE_GL_ERROR();
         
-        System::Instance()->m_hdc = hdc;
-        System::Instance()->m_hglrc = hglrc;
-
-        GLuint buffer;
-
-        glGenBuffers(1, &buffer);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, buffer);
-
-        glBufferStorage(GL_ARRAY_BUFFER, 1024 * 1024, NULL, GL_MAP_WRITE_BIT);
-
-        const float data[] =
+        static const GLfloat vertex_positions[] =
         {
-             0.25, -0.25, 0.5, 1.0,
-            -0.25, -0.25, 0.5, 1.0,
-             0.25, 0.25, 0.5, 1.0
+            -0.25f,  0.25f, -0.25f,
+            -0.25f, -0.25f, -0.25f,
+             0.25f, -0.25f, -0.25f,
+
+             0.25f, -0.25f, -0.25f,
+             0.25f,  0.25f, -0.25f,
+            -0.25f,  0.25f, -0.25f,
+
+             0.25f, -0.25f, -0.25f,
+             0.25f, -0.25f,  0.25f,
+             0.25f,  0.25f, -0.25f,
+
+             0.25f, -0.25f,  0.25f,
+             0.25f,  0.25f,  0.25f,
+             0.25f,  0.25f, -0.25f,
+
+             0.25f, -0.25f,  0.25f,
+            -0.25f, -0.25f,  0.25f,
+             0.25f,  0.25f,  0.25f,
+
+            -0.25f, -0.25f,  0.25f,
+            -0.25f,  0.25f,  0.25f,
+             0.25f,  0.25f,  0.25f,
+
+            -0.25f, -0.25f,  0.25f,
+            -0.25f, -0.25f, -0.25f,
+            -0.25f,  0.25f,  0.25f,
+
+            -0.25f, -0.25f, -0.25f,
+            -0.25f,  0.25f, -0.25f,
+            -0.25f,  0.25f,  0.25f,
+
+            -0.25f, -0.25f,  0.25f,
+             0.25f, -0.25f,  0.25f,
+             0.25f, -0.25f, -0.25f,
+
+             0.25f, -0.25f, -0.25f,
+            -0.25f, -0.25f, -0.25f,
+            -0.25f, -0.25f,  0.25f,
+
+            -0.25f,  0.25f, -0.25f,
+             0.25f,  0.25f, -0.25f,
+             0.25f,  0.25f,  0.25f,
+
+             0.25f,  0.25f,  0.25f,
+            -0.25f,  0.25f,  0.25f,
+            -0.25f,  0.25f, -0.25f
         };
 
-        // Put the data into the buffer at offset zero
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(data), data);
-        
+        glGenBuffers(1, &s_buffer);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glBindBuffer(GL_ARRAY_BUFFER, s_buffer);
+        GET_AND_HANDLE_GL_ERROR();
+
+        std::cout << sizeof(vertex_positions);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_positions), vertex_positions, GL_STATIC_DRAW);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glEnableVertexAttribArray(0);
+        GET_AND_HANDLE_GL_ERROR();
+
+        s_eyeMatrix = glm::lookAt(glm::vec3(0, 0, 4), glm::vec3(), glm::vec3(0, 1, 0));
     }
     break;
 
@@ -316,7 +388,11 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
     case WM_SIZE:
     {
-        // HANDLE Resize case here
+        std::cout << "Recalcuatled" << std::endl;
+        short width = LOWORD(lParam);
+        short height = HIWORD(lParam);
+        std::cout << "width : " << width << " / height : " << height << std::endl;
+        s_projectionMatrix = glm::perspectiveFov(glm::pi<float>() * 0.25f, width/0.5f, height/0.5f, 0.1f, 1000.0f);
     }
 
     case WM_QUIT:
@@ -346,27 +422,30 @@ void System::SetQuitFlag()
 
 void System::Render()
 {
-    GLfloat currentTime = m_clock.GetSec();
     GLfloat color[] = { 0, 0.8f, 0.7f, 1.0f };
-    GLfloat color2[] = { std::sin(currentTime) * 0.5f + 0.5f, std::cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
 
-    glPointSize(5.0f);
     glClearBufferfv(GL_COLOR, 0, color);
 
     glUseProgram(s_program);
 
-    GLfloat attrib[] = {
-        std::sin(currentTime) * 0.5f,
-        std::cos(currentTime) * 0.6f,
-        0.0f, 0.0f };
+    const float M_PI = 3.14159f;
+    const float currentTime = m_clock.GetSec();
+    const float f = (float)currentTime * (float)M_PI * 0.1f;
+    
+    glm::mat4 mvMatrix = glm::identity<glm::mat4>();
 
-    glVertexAttrib4fv(0, attrib);
-    glVertexAttrib4fv(1, color2);
+    mvMatrix = glm::translate(mvMatrix, glm::vec3(0.0f, 0.0f, -4.0f));
+    mvMatrix = glm::translate(mvMatrix, glm::vec3(sinf(2.1f * f) * 0.5f, cosf(1.7f * f) *0.5f, sinf(1.3f*f)));
+    mvMatrix = glm::rotate(mvMatrix, (float)currentTime * 45.0f / M_PI / 2, glm::vec3(0.0f, 1.0f, 0.0f));
+    mvMatrix = glm::rotate(mvMatrix, (float)currentTime * 81.0f / M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    // glDrawArrays(GL_PATCHES, 0, 3);
+    glUniformMatrix4fv(s_mvLocation, 1, GL_FALSE, (float*)&mvMatrix[0][0]);
+    glUniformMatrix4fv(s_projLocation, 1, GL_FALSE, (float*)&s_projectionMatrix[0][0]);
+    glUniformMatrix4fv(s_eyeLocation, 1, GL_FALSE, (float*)&s_eyeMatrix[0][0]);
+
+    glBindVertexArray(s_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // Double Buffering
     SwapBuffers(m_hdc);
-
 }
