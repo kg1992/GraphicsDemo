@@ -1,4 +1,5 @@
 #include "System.h"
+#include "GraphicsDemo.h"
 
 void AllocateDebugConsole();
 void BindCrtHandlesToStdHandles(bool, bool, bool);
@@ -13,6 +14,8 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR args, int nCmdShow)
 #endif
 
     System* system = System::Instance();
+
+    system->AddComponent(new GraphicsDemo());
 
     system->Init();
 

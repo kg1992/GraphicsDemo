@@ -179,14 +179,17 @@
   <ItemGroup>
     <ClInclude Include="Clock.h" />
     <ClInclude Include="Errors.h" />
+    <ClInclude Include="GraphicsDemo.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="System.h" />
+    <ClInclude Include="SystemComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="Errors.cpp" />
+    <ClCompile Include="GraphicsDemo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="System.cpp" />
