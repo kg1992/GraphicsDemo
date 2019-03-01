@@ -180,7 +180,9 @@
     <ClInclude Include="Clock.h" />
     <ClInclude Include="Errors.h" />
     <ClInclude Include="GraphicsDemo.h" />
+    <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="System.h" />
@@ -192,7 +194,9 @@
     <ClCompile Include="Errors.cpp" />
     <ClCompile Include="GraphicsDemo.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Object.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="System.cpp" />
   </ItemGroup>
