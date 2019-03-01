@@ -84,8 +84,12 @@ void System::Loop()
         }
 
         Render();
+   
+    }
 
-        
+    for (auto pComponent : m_components)
+    {
+        pComponent->OnEnd();
     }
 }
 

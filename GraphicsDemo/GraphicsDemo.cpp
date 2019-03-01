@@ -10,6 +10,7 @@
 #include <fbxsdk.h>
 #include "Mesh.h"
 #include "System.h"
+#include "Camera.h"
 
 namespace
 {
@@ -21,8 +22,7 @@ namespace
     GLint s_eyeLocation;
     GLuint s_texture;
     GLint s_samplerLocation;
-    glm::mat4 s_projectionMatrix = glm::identity<glm::mat4>();
-    glm::mat4 s_eyeMatrix = glm::identity<glm::mat4>();
+    Camera camera;
 
     std::string GetShaderInfoLog(GLuint shader)
     {
@@ -215,7 +215,7 @@ void GraphicsDemo::OnStart()
     glEnableVertexAttribArray(0);
     GET_AND_HANDLE_GL_ERROR();
 
-    s_eyeMatrix = glm::lookAt(glm::vec3(0, 0, 2), glm::vec3(), glm::vec3(0, 1, 0));
+    camera.LookAt(glm::vec3(0, 0, 2), glm::vec3(), glm::vec3(0, 1, 0));
 
     glGenTextures(1, &s_texture);
     GET_AND_HANDLE_GL_ERROR();
@@ -273,8 +273,8 @@ void GraphicsDemo::Render()
     mvMatrix = glm::rotate(mvMatrix, (float)currentTime * 81.0f / M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
 
     glUniformMatrix4fv(s_mvLocation, 1, GL_FALSE, (float*)&mvMatrix[0][0]);
-    glUniformMatrix4fv(s_projLocation, 1, GL_FALSE, (float*)&s_projectionMatrix[0][0]);
-    glUniformMatrix4fv(s_eyeLocation, 1, GL_FALSE, (float*)&s_eyeMatrix[0][0]);
+    glUniformMatrix4fv(s_projLocation, 1, GL_FALSE, (float*)&camera.ProjectionMatrix()[0][0]);
+    glUniformMatrix4fv(s_eyeLocation, 1, GL_FALSE, (float*)&camera.EyeMatrix()[0][0]);
     // glUniform1i(s_samplerLocation, s_texture);
 
     glBindVertexArray(s_vao);
@@ -296,7 +296,7 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParama, LPARAM lParam
     case WM_SIZE:
         short width = LOWORD(lParam);
         short height = HIWORD(lParam);
-        s_projectionMatrix = glm::perspectiveFov(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
+        camera.SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
             0.1f, 1000.0f);
     }
 }

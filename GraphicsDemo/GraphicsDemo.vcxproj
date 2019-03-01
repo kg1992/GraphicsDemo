@@ -181,6 +181,7 @@
     <ClInclude Include="Errors.h" />
     <ClInclude Include="GraphicsDemo.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="System.h" />
     <ClInclude Include="SystemComponent.h" />
@@ -192,6 +193,7 @@
     <ClCompile Include="GraphicsDemo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="System.cpp" />
   </ItemGroup>
   <ItemGroup>
