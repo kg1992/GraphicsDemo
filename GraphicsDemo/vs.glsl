@@ -2,10 +2,7 @@
 
 in vec4 position;
 
-out VS_OUT
-{
-	vec4 color;
-} vs_out;
+out vec2 v_uv;
 
 uniform mat4 mvMatrix;
 uniform mat4 projMatrix;
@@ -16,5 +13,5 @@ void main(void)
 	// gl_Position = position;
 	// gl_Position = projMatrix * position;
 	gl_Position = projMatrix * eyeMatrix * mvMatrix * position;
-	vs_out.color = position * 2.0 + vec4(0.5,0.5,0.5,0.0);
+	v_uv = position.xy;
 }

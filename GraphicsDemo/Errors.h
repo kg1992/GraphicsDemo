@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
-#include "GL/glad.h"
+#include <glad.h>
 
 #define EXIT_ON_ERROR
 

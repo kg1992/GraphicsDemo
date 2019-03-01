@@ -1,11 +1,13 @@
 #include "System.h"
 #include "Errors.h"
-#include "GL/glad.h"
+#include <glad.h>
 #include <TCHAR.h>
 #include <fstream>
 #include <iostream> 
-#include <glm.hpp>
-#include <ext.hpp>
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+#include <fbxsdk.h>
+#include "Mesh.h"
 
 namespace
 {
@@ -15,6 +17,8 @@ namespace
     GLint s_mvLocation;
     GLint s_projLocation;
     GLint s_eyeLocation;
+    GLuint s_texture;
+    GLint s_samplerLocation;
     glm::mat4 s_projectionMatrix = glm::identity<glm::mat4>();
     glm::mat4 s_eyeMatrix = glm::identity<glm::mat4>();
 
@@ -64,6 +68,37 @@ namespace
             std::cout << infoLog << std::endl;
         }
         return shader;
+    }
+
+    void generate_texture(float* data, int width, int height)
+    {
+        int end = width * height;
+        for (int i = 0; i < end; ++i)
+        {
+            int offset = i * 4;
+            int region = i * 3 / end;
+            if (region == 0)
+            {
+                data[offset] = 1.0f;
+                data[offset + 1] = 0.0f;
+                data[offset + 2] = 0.0f;
+                data[offset + 3] = 1.0f;
+            }
+            else if (region == 1)
+            {
+                data[offset] = 0.0f;
+                data[offset + 1] = 1.0f;
+                data[offset + 2] = 0.0f;
+                data[offset + 3] = 1.0f;
+            }
+            else if (region = 2)
+            {
+                data[offset] = 0.0f;
+                data[offset + 1] = 0.0f;
+                data[offset + 2] = 1.0f;
+                data[offset + 3] = 1.0f;
+            }
+        }
     }
 }
 
@@ -144,6 +179,7 @@ void System::Free()
     glDeleteBuffers(1, &s_buffer);
     glDeleteVertexArrays(1, &s_vao);
     glDeleteProgram(s_program);
+    glDeleteTextures(1, &s_texture);
 
     if (!wglMakeCurrent(NULL, NULL))
     {
@@ -277,12 +313,12 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         //glAttachShader(program, tessEvalShader);
         //glAttachShader(program, geometryShader);
         glLinkProgram(program);
-        
+
         std::string programInfoLog = GetProgramInfoLog(program);
         if (programInfoLog.size() != 0) {
 
             std::cout << " * Program Info Log : " << std::endl
-                      << GetProgramInfoLog(program) << std::endl;
+                << GetProgramInfoLog(program) << std::endl;
         }
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
@@ -304,7 +340,7 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
         glBindVertexArray(s_vao);
         GET_AND_HANDLE_GL_ERROR();
-        
+
         static const GLfloat vertex_positions[] =
         {
             -0.25f,  0.25f, -0.25f,
@@ -362,7 +398,6 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         glBindBuffer(GL_ARRAY_BUFFER, s_buffer);
         GET_AND_HANDLE_GL_ERROR();
 
-        std::cout << sizeof(vertex_positions);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_positions), vertex_positions, GL_STATIC_DRAW);
         GET_AND_HANDLE_GL_ERROR();
 
@@ -372,7 +407,42 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         glEnableVertexAttribArray(0);
         GET_AND_HANDLE_GL_ERROR();
 
-        s_eyeMatrix = glm::lookAt(glm::vec3(0, 0, 4), glm::vec3(), glm::vec3(0, 1, 0));
+        s_eyeMatrix = glm::lookAt(glm::vec3(0, 0, 2), glm::vec3(), glm::vec3(0, 1, 0));
+
+        glGenTextures(1, &s_texture);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glBindTexture(GL_TEXTURE_2D, s_texture);
+        GET_AND_HANDLE_GL_ERROR();
+
+        int width = 512;
+        int height = 512;
+        float* data = new float[width * height * 4];
+        generate_texture(data, width, height);
+
+        //glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 256, 256);
+        //GET_AND_HANDLE_GL_ERROR();
+
+        //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 256, GL_RGBA, GL_FLOAT, data);
+        //GET_AND_HANDLE_GL_ERROR();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
+        GET_AND_HANDLE_GL_ERROR();
+        glGenerateMipmap(GL_TEXTURE_2D);
+        GET_AND_HANDLE_GL_ERROR();
+
+        s_samplerLocation = glGetUniformLocation(s_program, "s");
+        GET_AND_HANDLE_GL_ERROR();
+
+        delete[] data;
     }
     break;
 
@@ -388,11 +458,12 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
     case WM_SIZE:
     {
-        std::cout << "Recalcuatled" << std::endl;
         short width = LOWORD(lParam);
         short height = HIWORD(lParam);
-        std::cout << "width : " << width << " / height : " << height << std::endl;
-        s_projectionMatrix = glm::perspectiveFov(glm::pi<float>() * 0.25f, width/0.5f, height/0.5f, 0.1f, 1000.0f);
+        s_projectionMatrix = glm::perspectiveFov(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
+            0.1f, 1000.0f);
+        glViewport(0, 0, width, height);
+        GET_AND_HANDLE_GL_ERROR();
     }
 
     case WM_QUIT:
@@ -431,10 +502,10 @@ void System::Render()
     const float M_PI = 3.14159f;
     const float currentTime = m_clock.GetSec();
     const float f = (float)currentTime * (float)M_PI * 0.1f;
-    
+
     glm::mat4 mvMatrix = glm::identity<glm::mat4>();
 
-    mvMatrix = glm::translate(mvMatrix, glm::vec3(0.0f, 0.0f, -4.0f));
+    mvMatrix = glm::translate(mvMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
     mvMatrix = glm::translate(mvMatrix, glm::vec3(sinf(2.1f * f) * 0.5f, cosf(1.7f * f) *0.5f, sinf(1.3f*f)));
     mvMatrix = glm::rotate(mvMatrix, (float)currentTime * 45.0f / M_PI / 2, glm::vec3(0.0f, 1.0f, 0.0f));
     mvMatrix = glm::rotate(mvMatrix, (float)currentTime * 81.0f / M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -442,6 +513,7 @@ void System::Render()
     glUniformMatrix4fv(s_mvLocation, 1, GL_FALSE, (float*)&mvMatrix[0][0]);
     glUniformMatrix4fv(s_projLocation, 1, GL_FALSE, (float*)&s_projectionMatrix[0][0]);
     glUniformMatrix4fv(s_eyeLocation, 1, GL_FALSE, (float*)&s_eyeMatrix[0][0]);
+    // glUniform1i(s_samplerLocation, s_texture);
 
     glBindVertexArray(s_vao);
     glDrawArrays(GL_TRIANGLES, 0, 36);

@@ -1,9 +1,14 @@
+	[ Project Name ]
 Graphics Demo
 
-Created on 190221
+	[ Creation Date ]
+2019 / 02 / 21
 
-
-
-            [ References ]
-            
+	[ References ]
 https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context_(WGL)
+
+	[ External Dependencies ]
+OpenGL
+glad
+glm
+FbxSdk

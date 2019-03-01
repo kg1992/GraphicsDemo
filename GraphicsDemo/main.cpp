@@ -1,7 +1,5 @@
 #include "System.h"
 
-#pragma comment( lib, "lib/x64/OpenGL32.lib")
-
 void AllocateDebugConsole();
 void BindCrtHandlesToStdHandles(bool, bool, bool);
 

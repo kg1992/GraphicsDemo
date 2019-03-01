@@ -1,13 +1,13 @@
-#version 410 core
+#version 430 core
+
+uniform sampler2D s;
+
+in vec2 v_uv;
 
 out vec4 color;
 
-in VS_OUT
-{
-	vec4 color;
-} fs_in;
-
 void main(void)
 {
-	color = fs_in.color;
+	color = texelFetch(s, ivec2(gl_FragCoord.xy), 0);
+	// color = texture( s, v_uv );
 }
