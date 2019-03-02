@@ -6,6 +6,7 @@ Graphics Demo
 
 	[ References ]
 https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context_(WGL)
+https://boycoding.tistory.com/134?category=990597
 
 	[ External Dependencies ]
 OpenGL

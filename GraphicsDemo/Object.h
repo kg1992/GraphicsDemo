@@ -1,6 +1,7 @@
 #ifndef OBJECT_H_
 #define OBJECT_H_
 
+#include <vector>
 #include <glad.h>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
@@ -11,6 +12,8 @@ class Material;
 class Object
 {
 public:
+    Object();
+
     void SetPosition(const glm::vec3& pos);
 
     const glm::vec3& GetPosition();
@@ -31,6 +34,8 @@ public:
 
     const glm::mat4x4& GetTransformMatrix();
 
+    void AddMaterial(std::shared_ptr<Material> ptr);
+
     std::shared_ptr<Mesh> GetMesh()
     {
         return m_mesh;
@@ -46,12 +51,19 @@ public:
         return m_material;
     }
 
+    std::shared_ptr<Material> GetMaterial(int index)
+    {
+        return m_materials[index];
+    }
+
     void SetMaterial(std::shared_ptr<Material> material)
     {
         m_material = material;
     }
 
     void Free();
+
+    void Render();
 
 
 private:
@@ -62,6 +74,7 @@ private:
 
     std::shared_ptr<Mesh> m_mesh;
     std::shared_ptr<Material> m_material;
+    std::vector<std::shared_ptr<Material>> m_materials;
 };
 
 #endif

@@ -82,3 +82,33 @@ void PrintNode(FbxNode* pNode) {
     PrintTabs();
     printf("\n");
 }
+
+
+FbxVector4 ReadNormal(FbxMesh* pMesh, int controlPointIndex, int vertexCounter)
+    {
+        FbxGeometryElementNormal* vertexNormal = pMesh->GetElementNormal(0);
+        FbxLayerElement::EReferenceMode referenceMode = vertexNormal->GetReferenceMode();
+        FbxLayerElement::EMappingMode mappingMode = vertexNormal->GetMappingMode();
+
+        int index = mappingMode == FbxLayerElement::eByControlPoint ? controlPointIndex : vertexCounter;
+        if (referenceMode == FbxGeometryElement::eIndexToDirect)
+        {
+            index = vertexNormal->GetIndexArray().GetAt(vertexCounter);
+        }
+        return vertexNormal->GetDirectArray().GetAt(index);
+
+        return FbxVector4();
+    }
+
+    FbxVector2 ReadUV(FbxMesh*pMesh, int controlPointIndex, int vertexCounter)
+    {
+        FbxGeometryElementUV* uv = pMesh->GetElementUV();
+        FbxLayerElement::EReferenceMode referenceMode = uv->GetReferenceMode();
+        FbxLayerElement::EMappingMode mappingMode = uv->GetMappingMode();
+        int index = mappingMode == FbxLayerElement::eByControlPoint ? controlPointIndex : vertexCounter;
+        if (referenceMode == FbxLayerElement::eIndexToDirect)
+        {
+            index = uv->GetIndexArray().GetAt(index);
+        }
+        return uv->GetDirectArray().GetAt(index);
+    }

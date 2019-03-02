@@ -7,6 +7,16 @@
 #include "Mesh.h"
 #include "Material.h"
 
+Object::Object()
+    : m_position()
+    , m_scale(1,1,1)
+    , m_rotation(glm::identity<glm::quat>())
+    , m_mvMatrix(glm::identity<glm::mat4x4>())
+    , m_mesh()
+    , m_material()
+{
+}
+
 void Object::SetPosition(const glm::vec3& pos)
 {
     m_position = pos;
@@ -67,6 +77,11 @@ const glm::mat4x4& Object::GetTransformMatrix()
     return m_mvMatrix;
 }
 
+void Object::AddMaterial(std::shared_ptr<Material> pMaterial)
+{
+    m_materials.push_back(pMaterial);
+}
+
 void Object::Free()
 {
     if (m_material)
@@ -74,8 +89,32 @@ void Object::Free()
         m_material->Free();
     }
 
+    while (!m_materials.empty())
+    {
+        m_materials.back()->Free();
+        m_materials.pop_back();
+    }
+
     if (m_mesh)
     {
         m_mesh->Free();
+    }
+}
+
+void Object::Render()
+{
+    m_mesh->Apply();
+
+    if (m_mesh->HasSubMesh())
+    {
+        for (int i = 0; i < m_mesh->GetSubMeshCount(); ++i)
+        {
+            m_materials[i]->Apply();
+            Mesh::SubMesh subMesh = m_mesh->GetSubMesh(i);
+            glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
+        }
+    }
+    else {
+        glDrawArrays(GL_TRIANGLES, 0, m_mesh->GetAttributeArray(0).GetAttributeCount());
     }
 }

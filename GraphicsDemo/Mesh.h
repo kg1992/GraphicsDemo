@@ -2,21 +2,50 @@
 #define MESH_H_
 
 #include <glad.h>
+#include <fbxsdk.h>
+#include <vector>
+#include "AttributeArray.h"
 
 class Mesh
 {
 public:
-    void Fill(const GLfloat* vertexData, unsigned long size);
-
     void Free();
 
-    GLuint GetBo()
+    void AddAttributeArray(AttributeArray& aa);
+
+    AttributeArray& GetAttributeArray(int index);
+
+    void Apply();
+
+    struct SubMesh
     {
-        return m_bo;
+        int begin;
+        int vertCount;
+    };
+
+    bool HasSubMesh()
+    {
+        return !m_subMeshes.empty();
+    }
+
+    void AddSubMesh(const SubMesh& subMesh)
+    {
+        m_subMeshes.push_back(subMesh);
+    }
+
+    int GetSubMeshCount()
+    {
+        return m_subMeshes.size();
+    }
+
+    SubMesh GetSubMesh(int i)
+    {
+        return m_subMeshes[i];
     }
 
 private:
-    GLuint m_bo;
+    std::vector<SubMesh> m_subMeshes;
+    std::vector<AttributeArray> m_attributeArrays;
 };
 
 #endif MESH_H_

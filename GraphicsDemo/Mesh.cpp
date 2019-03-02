@@ -1,20 +1,29 @@
 #include "Mesh.h"
 #include "Errors.h"
 
-void Mesh::Fill(const float * vertexData, unsigned long size)
-{
-    glGenBuffers(1, &m_bo);
-    GET_AND_HANDLE_GL_ERROR();
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_bo);
-    GET_AND_HANDLE_GL_ERROR();
-
-    glBufferData(GL_ARRAY_BUFFER, size, vertexData, GL_STATIC_DRAW);
-    GET_AND_HANDLE_GL_ERROR();
-}
-
 void Mesh::Free()
 {
-    glDeleteBuffers(1, &m_bo);
-    GET_AND_HANDLE_GL_ERROR();
+    while (!m_attributeArrays.empty())
+    {
+        m_attributeArrays.back().Free();
+        m_attributeArrays.pop_back();
+    }
+}
+
+void Mesh::AddAttributeArray(AttributeArray & aa)
+{
+    m_attributeArrays.push_back(aa);
+}
+
+AttributeArray& Mesh::GetAttributeArray(int index)
+{
+    return m_attributeArrays[index];
+}
+
+void Mesh::Apply()
+{
+    for (int i = 0; i < m_attributeArrays.size(); ++i)
+    {
+        m_attributeArrays[i].VertexAttribPointer(i, GL_FALSE);
+    }
 }

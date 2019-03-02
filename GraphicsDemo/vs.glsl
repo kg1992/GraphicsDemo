@@ -1,8 +1,9 @@
 #version 430 core
 
 in vec4 position;
-
-out vec2 v_uv;
+in vec2 uv;
+out vec2 vUv;
+out vec3 vPosition;
 
 uniform mat4 mvMatrix;
 uniform mat4 projMatrix;
@@ -13,5 +14,6 @@ void main(void)
 	// gl_Position = position;
 	// gl_Position = projMatrix * position;
 	gl_Position = projMatrix * eyeMatrix * mvMatrix * position;
-	v_uv = position.xy;
+	vUv = uv;
+	vPosition = position.xyz;
 }
