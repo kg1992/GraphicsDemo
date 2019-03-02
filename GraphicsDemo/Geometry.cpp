@@ -60,3 +60,24 @@ std::shared_ptr<Mesh> GenerateCube()
     pMesh->AddAttributeArray(aaPositions);
     return pMesh;
 }
+
+
+std::shared_ptr<Mesh> GeneratePlane()
+{
+    float positions[] = 
+    {
+        -1.0f, 0.0f, -1.0f,
+        -1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f,
+
+        -1.0f, 0.0f, -1.0f,
+        1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, -1.0f,
+    };
+
+    std::shared_ptr<Mesh> pMesh(new Mesh());
+    AttributeArray aaPosition(3, GL_FLOAT, 0, 0);
+    aaPosition.Fill(sizeof(positions), positions);
+    pMesh->AddAttributeArray(aaPosition);
+    return pMesh;
+}

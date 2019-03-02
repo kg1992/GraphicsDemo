@@ -2,7 +2,9 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <map>
 #include <glad.h>
+#include "ShaderPrograms.h"
 
 std::string GetShaderInfoLog(GLuint shader)
 {
@@ -52,20 +54,14 @@ GLuint CompileShaderFromSourceFile(GLenum type, const std::string& fileName)
     return shader;
 }
 
-GLuint PrepareShaderProgram()
+GLuint PrepareShaderProgram(const char* vs, const char* fs)
 {
-    GLuint vertexShader = CompileShaderFromSourceFile(GL_VERTEX_SHADER, "vs.glsl");
-    GLuint fragmentShader = CompileShaderFromSourceFile(GL_FRAGMENT_SHADER, "fs.glsl");
-    //GLuint tessControlShader = CompileShaderFromSourceFile(GL_TESS_CONTROL_SHADER, "tcs.glsl");
-    //GLuint tessEvalShader = CompileShaderFromSourceFile(GL_TESS_EVALUATION_SHADER, "tes.glsl");
-    //GLuint geometryShader = CompileShaderFromSourceFile(GL_GEOMETRY_SHADER, "gs.glsl");
+    GLuint vertexShader = CompileShaderFromSourceFile(GL_VERTEX_SHADER, vs);
+    GLuint fragmentShader = CompileShaderFromSourceFile(GL_FRAGMENT_SHADER, fs);
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
-    //glAttachShader(program, tessControlShader);
-    //glAttachShader(program, tessEvalShader);
-    //glAttachShader(program, geometryShader);
     glLinkProgram(program);
 
     std::string programInfoLog = GetProgramInfoLog(program);
@@ -78,4 +74,17 @@ GLuint PrepareShaderProgram()
     glDeleteShader(fragmentShader);
 
     return program;
+}
+
+GLuint ShaderPrograms::s_basic;
+GLuint ShaderPrograms::s_position;
+GLuint ShaderPrograms::s_uv;
+GLuint ShaderPrograms::s_normal;
+
+void ShaderPrograms::Init()
+{
+    s_basic = PrepareShaderProgram("basic.vert.glsl", "basic.frag.glsl");
+    s_position = PrepareShaderProgram("basic.vert.glsl", "position.frag.glsl");
+    s_uv = PrepareShaderProgram("basic.vert.glsl", "uv.frag.glsl");
+    s_normal = PrepareShaderProgram("basic.vert.glsl", "normal.frag.glsl");
 }

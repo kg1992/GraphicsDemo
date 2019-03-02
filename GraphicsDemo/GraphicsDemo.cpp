@@ -7,33 +7,30 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <Windowsx.h>
+#include <WinUser.h>
 #include "System.h"
 #include "Object.h"
 #include "Camera.h"
 #include "stb_image.h"
-#include <Windowsx.h>
-#include <WinUser.h>
+#include "ShaderPrograms.h"
 
-GLuint PrepareShaderProgram();
 void LoadFbxSdkObject(const char* const filename, std::vector<std::shared_ptr<Object>>& objectStack);
+std::shared_ptr<Mesh> GeneratePlane();
 
-struct SubMesh
+class PointLight
 {
-    SubMesh() : IndexOffset(0), TriangleCount(0) {}
-
-    int IndexOffset;
-    int TriangleCount;
+public:
+    glm::vec3 position;
+    glm::vec3 color;
 };
 
 namespace
 {
-    
-    GLint s_mvLocation;
-    GLint s_projLocation;
-    GLint s_eyeLocation;
     std::vector<std::shared_ptr<Object>> s_objectStack;
 
-    GLuint s_program;
+    std::vector<PointLight> pointLights;
 
     Object object;
     Camera camera;
@@ -82,18 +79,21 @@ namespace
 
 void GraphicsDemo::OnStart()
 {
-    s_program = PrepareShaderProgram();
-
-    s_mvLocation = glGetUniformLocation(s_program, "mvMatrix");
-    GET_AND_HANDLE_GL_ERROR();
-    s_projLocation = glGetUniformLocation(s_program, "projMatrix");
-    GET_AND_HANDLE_GL_ERROR();
-    s_eyeLocation = glGetUniformLocation(s_program, "eyeMatrix");
-    GET_AND_HANDLE_GL_ERROR();
+    ShaderPrograms::Init();
 
     camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
 
     LoadFbxSdkObject("./Resources/56-fbx/fbx/Dragon 2.5_fbx.fbx", s_objectStack);
+    s_objectStack.back()->SetRotation(glm::angleAxis(glm::pi<float>()*-0.5f, glm::vec3(1, 0, 0)));
+
+    PointLight pointLight;
+    pointLight.position = glm::vec3(0, 10, 0);;
+    pointLights.push_back(pointLight);
+        
+    std::shared_ptr<Object> pPlaneObject(new Object);
+    pPlaneObject->SetMesh(GeneratePlane());
+    pPlaneObject->SetScale(glm::vec3(100, 1, 100));
+    s_objectStack.push_back(pPlaneObject);
 }
 
 void GraphicsDemo::Update(float dt)
@@ -114,6 +114,7 @@ void GraphicsDemo::Update(float dt)
 
 void GraphicsDemo::Render()
 {
+    glViewport(0, 0, m_clientWidth, m_clientHeight);
     glClearColor(0, 0.8f, 0.7f, 1.0f);
 
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -121,7 +122,23 @@ void GraphicsDemo::Render()
     // Render(object);
     for (auto& pObject : s_objectStack)
     {
-        Render(*pObject);
+        Render(ShaderPrograms::s_basic, *pObject);
+    }
+
+    int peekViewWidth = m_clientWidth / 8;
+    int peekViewHeight = m_clientHeight / 8;
+    GLuint programs[] = { ShaderPrograms::s_position, ShaderPrograms::s_uv, ShaderPrograms::s_normal };
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    for (int i = 0; i < 3; ++i)
+    {
+        glViewport(peekViewWidth * i, 0, peekViewWidth, peekViewHeight);
+
+        for (auto& pObject : s_objectStack)
+        {
+            Render(programs[i], *pObject);
+        }
     }
 }
 
@@ -135,12 +152,10 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_SIZE:
-    {
-        short width = LOWORD(lParam);
-        short height = HIWORD(lParam);
-        camera.SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
+        m_clientWidth = LOWORD(lParam);
+        m_clientHeight = HIWORD(lParam);
+        camera.SetFrustum(glm::pi<float>() * 0.25f, m_clientWidth / 0.5f, m_clientHeight / 0.5f,
             0.1f, 1000.0f);
-    }
 
     case WM_MOUSEMOVE:
     {
@@ -233,13 +248,17 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
 }
 
-void GraphicsDemo::Render(Object & object)
+void GraphicsDemo::Render(GLuint program, Object& object)
 {
-    glUseProgram(s_program);
-    
-    glUniformMatrix4fv(s_mvLocation, 1, GL_FALSE, (float*)&object.GetTransformMatrix()[0][0]);
-    glUniformMatrix4fv(s_projLocation, 1, GL_FALSE, (float*)&camera.ProjectionMatrix()[0][0]);
-    glUniformMatrix4fv(s_eyeLocation, 1, GL_FALSE, (float*)&camera.EyeMatrix()[0][0]);
+    glUseProgram(program);
+
+    GLint mvLocation = glGetUniformLocation(program, "mvMatrix");
+    GLint projLocation = glGetUniformLocation(program, "projMatrix");
+    GLint eyeLocation = glGetUniformLocation(program, "eyeMatrix");
+
+    glUniformMatrix4fv(mvLocation, 1, GL_FALSE, (float*)&object.GetTransformMatrix()[0][0]);
+    glUniformMatrix4fv(projLocation, 1, GL_FALSE, (float*)&camera.ProjectionMatrix()[0][0]);
+    glUniformMatrix4fv(eyeLocation, 1, GL_FALSE, (float*)&camera.EyeMatrix()[0][0]);
 
     object.Render();
 }

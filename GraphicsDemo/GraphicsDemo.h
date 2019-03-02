@@ -2,6 +2,7 @@
 #define GRAPHCIS_DEMO_H_
 
 #include "SystemComponent.h"
+#include <glad.h>
 
 class Object;
 
@@ -15,7 +16,10 @@ public:
     void OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParama, LPARAM lParam) override;
 
 private:
-    void Render(Object& object);
+    int m_clientWidth;
+    int m_clientHeight;
+
+    void Render(GLuint program, Object& object);
 };
 
 #endif // GRAPHCIS_DEMO_H_
