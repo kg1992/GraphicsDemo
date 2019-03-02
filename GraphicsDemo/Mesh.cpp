@@ -3,6 +3,7 @@
 
 void Mesh::Free()
 {
+    m_subMeshes.clear();
     while (!m_attributeArrays.empty())
     {
         m_attributeArrays.back().Free();

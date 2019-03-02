@@ -195,12 +195,15 @@
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="Errors.cpp" />
+    <ClCompile Include="FbxLoader.cpp" />
+    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GraphicsDemo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="stb_image.c" />
     <ClCompile Include="System.cpp" />
   </ItemGroup>

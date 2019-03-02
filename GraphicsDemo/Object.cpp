@@ -13,7 +13,6 @@ Object::Object()
     , m_rotation(glm::identity<glm::quat>())
     , m_mvMatrix(glm::identity<glm::mat4x4>())
     , m_mesh()
-    , m_material()
 {
 }
 
@@ -84,11 +83,6 @@ void Object::AddMaterial(std::shared_ptr<Material> pMaterial)
 
 void Object::Free()
 {
-    if (m_material)
-    {
-        m_material->Free();
-    }
-
     while (!m_materials.empty())
     {
         m_materials.back()->Free();
@@ -98,6 +92,7 @@ void Object::Free()
     if (m_mesh)
     {
         m_mesh->Free();
+        m_mesh.reset();
     }
 }
 

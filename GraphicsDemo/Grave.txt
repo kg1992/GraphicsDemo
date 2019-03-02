@@ -83,32 +83,63 @@ void PrintNode(FbxNode* pNode) {
     printf("\n");
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
 FbxVector4 ReadNormal(FbxMesh* pMesh, int controlPointIndex, int vertexCounter)
+{
+    FbxGeometryElementNormal* vertexNormal = pMesh->GetElementNormal(0);
+    FbxLayerElement::EReferenceMode referenceMode = vertexNormal->GetReferenceMode();
+    FbxLayerElement::EMappingMode mappingMode = vertexNormal->GetMappingMode();
+
+    int index = mappingMode == FbxLayerElement::eByControlPoint ? controlPointIndex : vertexCounter;
+    if (referenceMode == FbxGeometryElement::eIndexToDirect)
     {
-        FbxGeometryElementNormal* vertexNormal = pMesh->GetElementNormal(0);
-        FbxLayerElement::EReferenceMode referenceMode = vertexNormal->GetReferenceMode();
-        FbxLayerElement::EMappingMode mappingMode = vertexNormal->GetMappingMode();
-
-        int index = mappingMode == FbxLayerElement::eByControlPoint ? controlPointIndex : vertexCounter;
-        if (referenceMode == FbxGeometryElement::eIndexToDirect)
-        {
-            index = vertexNormal->GetIndexArray().GetAt(vertexCounter);
-        }
-        return vertexNormal->GetDirectArray().GetAt(index);
-
-        return FbxVector4();
+        index = vertexNormal->GetIndexArray().GetAt(vertexCounter);
     }
+    return vertexNormal->GetDirectArray().GetAt(index);
 
-    FbxVector2 ReadUV(FbxMesh*pMesh, int controlPointIndex, int vertexCounter)
+    return FbxVector4();
+}
+
+FbxVector2 ReadUV(FbxMesh*pMesh, int controlPointIndex, int vertexCounter)
+{
+    FbxGeometryElementUV* uv = pMesh->GetElementUV();
+    FbxLayerElement::EReferenceMode referenceMode = uv->GetReferenceMode();
+    FbxLayerElement::EMappingMode mappingMode = uv->GetMappingMode();
+    int index = mappingMode == FbxLayerElement::eByControlPoint ? controlPointIndex : vertexCounter;
+    if (referenceMode == FbxLayerElement::eIndexToDirect)
     {
-        FbxGeometryElementUV* uv = pMesh->GetElementUV();
-        FbxLayerElement::EReferenceMode referenceMode = uv->GetReferenceMode();
-        FbxLayerElement::EMappingMode mappingMode = uv->GetMappingMode();
-        int index = mappingMode == FbxLayerElement::eByControlPoint ? controlPointIndex : vertexCounter;
-        if (referenceMode == FbxLayerElement::eIndexToDirect)
-        {
-            index = uv->GetIndexArray().GetAt(index);
-        }
-        return uv->GetDirectArray().GetAt(index);
+        index = uv->GetIndexArray().GetAt(index);
     }
+    return uv->GetDirectArray().GetAt(index);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void Material::Fill(float * data, int width, int height)
+{
+    glGenTextures(1, &m_diffuseMap);
+    GET_AND_HANDLE_GL_ERROR();
+
+    glBindTexture(GL_TEXTURE_2D, m_diffuseMap);
+    GET_AND_HANDLE_GL_ERROR();
+
+    //glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 256, 256);
+    //GET_AND_HANDLE_GL_ERROR();
+
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 256, GL_RGBA, GL_FLOAT, data);
+    //GET_AND_HANDLE_GL_ERROR();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    GET_AND_HANDLE_GL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    GET_AND_HANDLE_GL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    GET_AND_HANDLE_GL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GET_AND_HANDLE_GL_ERROR();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
+    GET_AND_HANDLE_GL_ERROR();
+    glGenerateMipmap(GL_TEXTURE_2D);
+    GET_AND_HANDLE_GL_ERROR();
+}

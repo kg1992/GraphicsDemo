@@ -14,8 +14,6 @@ public:
 
     GLuint GetProgram();
 
-    void Fill(float* data, int width, int height);
-
     void Free();
 
     void Apply();

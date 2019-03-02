@@ -12,7 +12,7 @@ void main(void)
 	// color = texelFetch(s, ivec2(gl_FragCoord.xy), 0);
 
 
-	color = texture( s, vec2(vUv.x, -vUv.y) );
+	color = texture( s, vec2(vUv.x, vUv.y) );
 
 
 	//color = vec4(vUv.x, -vUv.y, 0, 1);

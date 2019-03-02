@@ -6,10 +6,7 @@ namespace
 {
     // Get specific property value and connected texture if any.
     // Value = Property value * Factor property value (if no factor property, multiply by 1).
-    FbxDouble3 GetMaterialProperty(const FbxSurfaceMaterial * pMaterial,
-        const char * pPropertyName,
-        const char * pFactorPropertyName,
-        GLuint & pTextureName)
+    FbxDouble3 GetMaterialProperty(const FbxSurfaceMaterial * pMaterial, const char * pPropertyName, const char * pFactorPropertyName, GLuint & pTextureName)
     {
         FbxDouble3 lResult(0, 0, 0);
         const FbxProperty lProperty = pMaterial->FindProperty(pPropertyName);
@@ -58,34 +55,6 @@ GLuint Material::GetProgram()
     return m_program;
 }
 
-void Material::Fill(float * data, int width, int height)
-{
-    glGenTextures(1, &m_diffuseMap);
-    GET_AND_HANDLE_GL_ERROR();
-
-    glBindTexture(GL_TEXTURE_2D, m_diffuseMap);
-    GET_AND_HANDLE_GL_ERROR();
-
-    //glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 256, 256);
-    //GET_AND_HANDLE_GL_ERROR();
-
-    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 256, GL_RGBA, GL_FLOAT, data);
-    //GET_AND_HANDLE_GL_ERROR();
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    GET_AND_HANDLE_GL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    GET_AND_HANDLE_GL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    GET_AND_HANDLE_GL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    GET_AND_HANDLE_GL_ERROR();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
-    GET_AND_HANDLE_GL_ERROR();
-    glGenerateMipmap(GL_TEXTURE_2D);
-    GET_AND_HANDLE_GL_ERROR();
-}
-
 void Material::Free()
 {
     if (m_diffuseMap != 0)
@@ -103,26 +72,22 @@ void Material::Apply()
 
 bool Material::Initialize(const FbxSurfaceMaterial * pMaterial)
 {
-    const FbxDouble3 lEmissive = GetMaterialProperty(pMaterial,
-        FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, mEmissive.mTextureName);
+    const FbxDouble3 lEmissive = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, mEmissive.mTextureName);
     mEmissive.mColor[0] = static_cast<GLfloat>(lEmissive[0]);
     mEmissive.mColor[1] = static_cast<GLfloat>(lEmissive[1]);
     mEmissive.mColor[2] = static_cast<GLfloat>(lEmissive[2]);
 
-    const FbxDouble3 lAmbient = GetMaterialProperty(pMaterial,
-        FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, mAmbient.mTextureName);
+    const FbxDouble3 lAmbient = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, mAmbient.mTextureName);
     mAmbient.mColor[0] = static_cast<GLfloat>(lAmbient[0]);
     mAmbient.mColor[1] = static_cast<GLfloat>(lAmbient[1]);
     mAmbient.mColor[2] = static_cast<GLfloat>(lAmbient[2]);
 
-    const FbxDouble3 lDiffuse = GetMaterialProperty(pMaterial,
-        FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sDiffuseFactor, mDiffuse.mTextureName);
+    const FbxDouble3 lDiffuse = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sDiffuseFactor, mDiffuse.mTextureName);
     mDiffuse.mColor[0] = static_cast<GLfloat>(lDiffuse[0]);
     mDiffuse.mColor[1] = static_cast<GLfloat>(lDiffuse[1]);
     mDiffuse.mColor[2] = static_cast<GLfloat>(lDiffuse[2]);
 
-    const FbxDouble3 lSpecular = GetMaterialProperty(pMaterial,
-        FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, mSpecular.mTextureName);
+    const FbxDouble3 lSpecular = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, mSpecular.mTextureName);
     mSpecular.mColor[0] = static_cast<GLfloat>(lSpecular[0]);
     mSpecular.mColor[1] = static_cast<GLfloat>(lSpecular[1]);
     mSpecular.mColor[2] = static_cast<GLfloat>(lSpecular[2]);

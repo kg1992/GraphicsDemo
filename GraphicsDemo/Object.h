@@ -46,19 +46,9 @@ public:
         m_mesh = mesh;
     }
 
-    std::shared_ptr<Material> GetMaterial()
-    {
-        return m_material;
-    }
-
     std::shared_ptr<Material> GetMaterial(int index)
     {
         return m_materials[index];
-    }
-
-    void SetMaterial(std::shared_ptr<Material> material)
-    {
-        m_material = material;
     }
 
     void Free();
@@ -73,7 +63,6 @@ private:
     glm::mat4x4 m_mvMatrix;
 
     std::shared_ptr<Mesh> m_mesh;
-    std::shared_ptr<Material> m_material;
     std::vector<std::shared_ptr<Material>> m_materials;
 };
 
