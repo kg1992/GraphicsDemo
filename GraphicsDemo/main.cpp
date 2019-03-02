@@ -17,11 +17,7 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR args, int nCmdShow)
 
     system->AddComponent(new GraphicsDemo());
 
-    system->Init();
-
-    system->Loop();
-
-    system->Free();
+    system->Run();
 
     return 0;
 }

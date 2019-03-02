@@ -115,6 +115,15 @@ void System::Free()
     m_hglrc = NULL;
 }
 
+void System::Run()
+{
+    Init();
+
+    Loop();
+
+    Free();
+}
+
 float System::CurrentTime()
 {
     return m_clock.GetSec();
@@ -232,6 +241,9 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         else
             std::cout << "glDebugMessageCallback not available" << std::endl;
 
+        glEnable(GL_DEPTH_TEST);
+        GET_AND_HANDLE_GL_ERROR();
+
         System::Instance()->m_hdc = hdc;
         System::Instance()->m_hglrc = hglrc;
     }
@@ -254,19 +266,6 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         glViewport(0, 0, width, height);
         GET_AND_HANDLE_GL_ERROR();
     }
-
-    case WM_QUIT:
-        break;
-
-    case WM_MOUSEMOVE:
-    case WM_LBUTTONDOWN:case WM_LBUTTONUP:
-    case WM_RBUTTONDOWN:case WM_RBUTTONUP:
-    case WM_MBUTTONDOWN:case WM_MBUTTONUP:
-    case WM_MOUSEWHEEL:
-    case WM_KEYDOWN: case WM_KEYUP:
-    case WM_KILLFOCUS: case WM_SETFOCUS:
-        // TODO: handle input here
-        break;
 
     }
 

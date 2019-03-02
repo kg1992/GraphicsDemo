@@ -14,11 +14,7 @@ class System : public Singleton<System>
 public:
     System();
 
-    bool Init();
-
-    void Loop();
-
-    void Free();
+    void Run();
 
     float CurrentTime();
 
@@ -38,6 +34,12 @@ private:
     void SetQuitFlag();
 
     void Render();
+
+    bool Init();
+
+    void Loop();
+
+    void Free();
 };
 
 #endif

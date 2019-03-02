@@ -11,13 +11,19 @@ public:
 
     void SetPosition(float x, float y, float z);
 
+    const glm::vec3& GetPosition();
+
     void SetCenter(const glm::vec3& pos);
 
     void SetCenter(float x, float y, float z);
 
+    const glm::vec3& GetCenter();
+
     void SetUp(glm::vec3 up);
 
     void SetUp(float x, float y, float z);
+
+    const glm::vec3& GetUp();
 
     void LookAt(const glm::vec3& pos, const glm::vec3& center, const glm::vec3& up);
 
@@ -28,6 +34,8 @@ public:
     void SetFrustum(float fovy, float w, float h, float n, float f);
 
     void SetFrustum(float fovy, float aspectRatio, float n, float f);
+
+    void MoveBy(glm::vec3 disp);
 
     const glm::mat4x4& EyeMatrix();
 

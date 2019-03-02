@@ -13,3 +13,11 @@ OpenGL
 glad
 glm
 FbxSdk
+
+	[ Control ]
+Wheel = Magnify/Minify
+Wheel Down + Mouse Move = Revolve around view center
+Ctrl + Wheel Down + Mosue Move = Magnify/Minify
+Shift + Wheel Down + Mouse Move = Slide Camera
+
+R = Reset Camera

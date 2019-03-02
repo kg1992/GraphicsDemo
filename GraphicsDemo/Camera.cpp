@@ -20,6 +20,11 @@ void Camera::SetPosition(float x, float y, float z)
     UpdateEyeMatrix();
 }
 
+const glm::vec3 & Camera::GetPosition()
+{
+    return m_position;
+}
+
 void Camera::SetCenter(const glm::vec3 & pos)
 {
     m_center = pos;
@@ -36,6 +41,11 @@ void Camera::SetCenter(float x, float y, float z)
     UpdateEyeMatrix();
 }
 
+const glm::vec3 & Camera::GetCenter()
+{
+    return m_center;
+}
+
 void Camera::SetUp(glm::vec3 up)
 {
     m_up = up;
@@ -50,6 +60,11 @@ void Camera::SetUp(float x, float y, float z)
     m_up.z = z;
 
     UpdateEyeMatrix();
+}
+
+const glm::vec3 & Camera::GetUp()
+{
+    return m_up;
 }
 
 void Camera::LookAt(const glm::vec3 & pos, const glm::vec3 & center, const glm::vec3 & up)
@@ -79,6 +94,13 @@ void Camera::SetFrustum(float fovy, float w, float h, float n, float f)
 void Camera::SetFrustum(float fovy, float aspectRatio, float n, float f)
 {
     m_projectionMatrix = glm::perspective(fovy, aspectRatio, n, f);
+}
+
+void Camera::MoveBy(glm::vec3 disp)
+{
+    m_position += disp;
+    m_center += disp;
+    UpdateEyeMatrix();
 }
 
 const glm::mat4x4& Camera::EyeMatrix()

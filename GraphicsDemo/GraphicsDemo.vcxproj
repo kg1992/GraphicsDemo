@@ -185,6 +185,7 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="System.h" />
@@ -209,10 +210,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="fs.glsl" />
-    <None Include="gs.glsl" />
     <None Include="PostBuild.bat" />
-    <None Include="tcs.glsl" />
-    <None Include="tes.glsl" />
     <None Include="vs.glsl" />
   </ItemGroup>
   <ItemGroup>
