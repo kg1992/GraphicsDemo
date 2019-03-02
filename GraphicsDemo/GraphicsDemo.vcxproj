@@ -72,29 +72,29 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Projects\OglCpp;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>D:\Projects\OglCpp\$(PlatformTarget)\$(Configuration);$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Projects\OglCpp;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
-    <LibraryPath>D:\Projects\OglCpp\$(PlatformTarget)\$(Configuration);$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
+    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\Projects\OglCpp;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>D:\Projects\OglCpp\$(PlatformTarget)\$(Configuration);$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\Projects\OglCpp;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
-    <LibraryPath>D:\Projects\OglCpp\$(PlatformTarget)\$(Configuration);$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
+    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
