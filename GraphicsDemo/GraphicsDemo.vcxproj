@@ -181,6 +181,7 @@
     <ClInclude Include="Clock.h" />
     <ClInclude Include="Errors.h" />
     <ClInclude Include="GraphicsDemo.h" />
+    <ClInclude Include="Lights.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Object.h" />

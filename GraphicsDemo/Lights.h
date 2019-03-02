@@ -1,0 +1,13 @@
+#ifndef LIGHTS_H_
+#define LIGHTS_H_
+
+#include <glm/glm.hpp>
+
+class PointLight
+{
+public:
+    glm::vec3 position;
+    glm::vec3 color;
+};
+
+#endif

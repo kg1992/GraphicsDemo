@@ -1,6 +1,3 @@
-#include "SystemComponent.h"
-#include "GraphicsDemo.h"
-#include "Errors.h"
 #include <iostream>
 #include <glad.h>
 #define GLM_FORCE_SWIZZLE
@@ -10,35 +7,19 @@
 #include <glm/gtx/quaternion.hpp>
 #include <Windowsx.h>
 #include <WinUser.h>
+#include "SystemComponent.h"
+#include "GraphicsDemo.h"
+#include "Errors.h"
 #include "System.h"
 #include "Object.h"
-#include "Camera.h"
 #include "stb_image.h"
 #include "ShaderPrograms.h"
 
 void LoadFbxSdkObject(const char* const filename, std::vector<std::shared_ptr<Object>>& objectStack);
 std::shared_ptr<Mesh> GeneratePlane();
 
-class PointLight
-{
-public:
-    glm::vec3 position;
-    glm::vec3 color;
-};
-
 namespace
 {
-    std::vector<std::shared_ptr<Object>> s_objectStack;
-
-    std::vector<PointLight> pointLights;
-
-    Object object;
-    Camera camera;
-
-    int s_lastMouseX = 0, s_lastMouseY = 0;
-    bool s_mousePosRecordStarted = false;
-
-    
     const int VK_0 = 0x30;
     const int VK_1 = 0x31;
     const int VK_2 = 0x32;
@@ -77,39 +58,41 @@ namespace
     const int VK_Z = 0x5A;
 }
 
+GraphicsDemo::GraphicsDemo()
+    : m_clientWidth(0)
+    , m_clientHeight(0)
+    , m_lastMouseX(0)
+    , m_lastMouseY(0)
+    , m_mousePosRecordStarted(false)
+{
+}
+
 void GraphicsDemo::OnStart()
 {
+    // Load, compile, link shader programs.
     ShaderPrograms::Init();
 
-    camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
+    // Initial m_camera location.
+    m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
 
-    LoadFbxSdkObject("./Resources/56-fbx/fbx/Dragon 2.5_fbx.fbx", s_objectStack);
-    s_objectStack.back()->SetRotation(glm::angleAxis(glm::pi<float>()*-0.5f, glm::vec3(1, 0, 0)));
+    // Load dragon form fbx file.
+    LoadFbxSdkObject("./Resources/56-fbx/fbx/Dragon 2.5_fbx.fbx", m_objects);
+    // Dragon is facing downward after loaded. I'm rotating it to make it face forward. (+Z)
+    m_objects.back()->SetRotation(glm::angleAxis(glm::pi<float>()*-0.5f, glm::vec3(1, 0, 0)));
 
+    // Point light setup.
     PointLight pointLight;
     pointLight.position = glm::vec3(0, 10, 0);;
-    pointLights.push_back(pointLight);
+    m_pointLights.push_back(pointLight);
         
     std::shared_ptr<Object> pPlaneObject(new Object);
     pPlaneObject->SetMesh(GeneratePlane());
     pPlaneObject->SetScale(glm::vec3(100, 1, 100));
-    s_objectStack.push_back(pPlaneObject);
+    m_objects.push_back(pPlaneObject);
 }
 
 void GraphicsDemo::Update(float dt)
 {
-    const float M_PI = 3.14159f;
-    const float currentTime = System::Instance()->CurrentTime();
-    const float f = (float)currentTime * (float)M_PI * 0.1f;
-
-    glm::mat4 mvMatrix = glm::identity<glm::mat4>();
-
-    mvMatrix = glm::translate(mvMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
-    mvMatrix = glm::translate(mvMatrix, glm::vec3(sinf(2.1f * f) * 0.5f, cosf(1.7f * f) *0.5f, sinf(1.3f*f)));
-    mvMatrix = glm::rotate(mvMatrix, (float)currentTime * 45.0f / M_PI / 2, glm::vec3(0.0f, 1.0f, 0.0f));
-    mvMatrix = glm::rotate(mvMatrix, (float)currentTime * 81.0f / M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
-
-    object.SetTransformMatrix(mvMatrix);
 }
 
 void GraphicsDemo::Render()
@@ -120,7 +103,7 @@ void GraphicsDemo::Render()
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Render(object);
-    for (auto& pObject : s_objectStack)
+    for (auto& pObject : m_objects)
     {
         Render(ShaderPrograms::s_basic, *pObject);
     }
@@ -135,7 +118,7 @@ void GraphicsDemo::Render()
     {
         glViewport(peekViewWidth * i, 0, peekViewWidth, peekViewHeight);
 
-        for (auto& pObject : s_objectStack)
+        for (auto& pObject : m_objects)
         {
             Render(programs[i], *pObject);
         }
@@ -144,7 +127,11 @@ void GraphicsDemo::Render()
 
 void GraphicsDemo::Free()
 {
-    object.Free();
+    while (!m_objects.empty())
+    {
+        m_objects.back()->Free();
+        m_objects.pop_back();
+    }
 }
 
 void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -154,7 +141,7 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_SIZE:
         m_clientWidth = LOWORD(lParam);
         m_clientHeight = HIWORD(lParam);
-        camera.SetFrustum(glm::pi<float>() * 0.25f, m_clientWidth / 0.5f, m_clientHeight / 0.5f,
+        m_camera.SetFrustum(glm::pi<float>() * 0.25f, m_clientWidth / 0.5f, m_clientHeight / 0.5f,
             0.1f, 1000.0f);
 
     case WM_MOUSEMOVE:
@@ -164,29 +151,29 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         int x = GET_X_LPARAM(lParam);
         int y = GET_Y_LPARAM(lParam);
         int dx, dy;
-        if (!s_mousePosRecordStarted)
+        if (!m_mousePosRecordStarted)
         {
             dx = dy = 0;
-            s_mousePosRecordStarted = true;
+            m_mousePosRecordStarted = true;
         }
         else
         {
-            dx = x - s_lastMouseX;
-            dy = y - s_lastMouseY;
+            dx = x - m_lastMouseX;
+            dy = y - m_lastMouseY;
         }
 
         if (wParam & MK_CONTROL && wParam & MK_MBUTTON)
         {
-            glm::vec3 disp = camera.GetCenter() - camera.GetPosition();
+            glm::vec3 disp = m_camera.GetCenter() - m_camera.GetPosition();
             if (dy > 0) {
                 for (int i = 0; i < dy; ++i) {
-                    camera.SetPosition(camera.GetPosition() - disp * 0.025f);
+                    m_camera.SetPosition(m_camera.GetPosition() - disp * 0.025f);
                 }
             }
             else if (dy < 0)
             {
                 for (int i = 0; i > dy; --i) {
-                    camera.SetPosition(camera.GetPosition() + disp * 0.05f);
+                    m_camera.SetPosition(m_camera.GetPosition() + disp * 0.05f);
                 }
 
             }
@@ -194,30 +181,30 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         else if (wParam & MK_SHIFT && wParam & MK_MBUTTON)
         {
-            glm::mat4x4 invEye = glm::inverse(camera.EyeMatrix());
+            glm::mat4x4 invEye = glm::inverse(m_camera.EyeMatrix());
             glm::vec4 ex = invEye[0];
             glm::vec4 ey = invEye[1];
 
-            camera.MoveBy(ex.xyz * (float)dx);
-            camera.MoveBy(ey.xyz * -(float)dy);
+            m_camera.MoveBy(ex.xyz * (float)dx);
+            m_camera.MoveBy(ey.xyz * -(float)dy);
         }
 
         else if (wParam & MK_MBUTTON)
         {
             // relative displacement from center to eye
-            glm::vec3 r = camera.GetPosition() - camera.GetCenter();
+            glm::vec3 r = m_camera.GetPosition() - m_camera.GetCenter();
 
             // revolve around center horizontally
-            r = glm::rotate(r, -dx * 0.05f, camera.GetUp());
+            r = glm::rotate(r, -dx * 0.05f, m_camera.GetUp());
 
             // revolve around center vertically
-            glm::vec3 right = glm::normalize(glm::cross(r, camera.GetUp()));
+            glm::vec3 right = glm::normalize(glm::cross(r, m_camera.GetUp()));
             r = glm::rotate(r, dy * 0.05f, right);
-            camera.SetPosition(camera.GetCenter() + r);
+            m_camera.SetPosition(m_camera.GetCenter() + r);
         }
 
-        s_lastMouseX = x;
-        s_lastMouseY = y;
+        m_lastMouseX = x;
+        m_lastMouseY = y;
         break;
     }
 
@@ -226,16 +213,16 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         // ref : https://docs.microsoft.com/en-us/windows/desktop/inputdev/wm-mousewheel
         short wheel = HIWORD(wParam);
 
-        glm::vec3 disp = camera.GetCenter() - camera.GetPosition();
+        glm::vec3 disp = m_camera.GetCenter() - m_camera.GetPosition();
 
-        camera.SetPosition(camera.GetPosition() - disp * 0.025f * wheel / WHEEL_DELTA);
+        m_camera.SetPosition(m_camera.GetPosition() - disp * 0.025f * wheel / WHEEL_DELTA);
         break;
     }
 
     case WM_KEYUP:
         if (wParam == VK_R)
         {
-            camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+            m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         }
         break;
 
@@ -257,8 +244,8 @@ void GraphicsDemo::Render(GLuint program, Object& object)
     GLint eyeLocation = glGetUniformLocation(program, "eyeMatrix");
 
     glUniformMatrix4fv(mvLocation, 1, GL_FALSE, (float*)&object.GetTransformMatrix()[0][0]);
-    glUniformMatrix4fv(projLocation, 1, GL_FALSE, (float*)&camera.ProjectionMatrix()[0][0]);
-    glUniformMatrix4fv(eyeLocation, 1, GL_FALSE, (float*)&camera.EyeMatrix()[0][0]);
+    glUniformMatrix4fv(projLocation, 1, GL_FALSE, (float*)&m_camera.ProjectionMatrix()[0][0]);
+    glUniformMatrix4fv(eyeLocation, 1, GL_FALSE, (float*)&m_camera.EyeMatrix()[0][0]);
 
     object.Render();
 }
