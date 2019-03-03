@@ -28,4 +28,6 @@ void APIENTRY OpenglCallbackFunction(GLenum source,
     const GLchar* message,
     const void* userParam);
 
+void InitializeGLDebugging();
+
 #endif

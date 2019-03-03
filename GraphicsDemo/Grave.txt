@@ -143,3 +143,56 @@ void Material::Fill(float * data, int width, int height)
     glGenerateMipmap(GL_TEXTURE_2D);
     GET_AND_HANDLE_GL_ERROR();
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+bool LightSender::Init(GLuint program)
+{
+    GLuint blockIndex = glGetUniformBlockIndex(program, "LightInfo");
+    GET_AND_HANDLE_GL_ERROR();
+
+    if (blockIndex == GL_INVALID_INDEX)
+        return false;
+
+    GLint blockSize;
+    glGetActiveUniformBlockiv(program, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+    GET_AND_HANDLE_GL_ERROR();
+
+    std::vector<GLubyte> blockBuffer;
+    blockBuffer.resize(blockSize);
+
+    const GLchar * names[] = { "LightInfo.position", "LightInfo.la"
+                             , "LightInfo.ld", "LightInfo.ls" };
+    GLuint indices[4];
+    glGetUniformIndices(program, 4, names, indices);
+    GET_AND_HANDLE_GL_ERROR();
+
+    GLint offset[4];
+    glGetActiveUniformsiv(program, 4, indices, GL_UNIFORM_OFFSET, offset);
+    GET_AND_HANDLE_GL_ERROR();
+
+    GLfloat position[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    GLfloat la[] = { 0.0f, 0.0f, 0.0f };
+    GLfloat ld[] = { 0.5f, 0.0f, 0.0f };
+    GLfloat ls[] = { 0.0f, 1.0f, 0.0f };
+
+    std::memcpy(blockBuffer.data() + offset[0], position, 4 * sizeof(GLfloat));
+    std::memcpy(blockBuffer.data() + offset[1], la, 3 * sizeof(GLfloat));
+    std::memcpy(blockBuffer.data() + offset[2], ld, 3 * sizeof(GLfloat));
+    std::memcpy(blockBuffer.data() + offset[3], ls, 3 * sizeof(GLfloat));
+
+    GLuint ubo;
+    glGenBuffers(1, &ubo);
+    GET_AND_HANDLE_GL_ERROR();
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    GET_AND_HANDLE_GL_ERROR();
+    glBufferData(GL_UNIFORM_BUFFER, blockSize, blockBuffer.data(), GL_DYNAMIC_DRAW);
+    GET_AND_HANDLE_GL_ERROR();
+
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo);
+    GET_AND_HANDLE_GL_ERROR();
+
+    m_ubo = ubo;
+
+    return true;
+}

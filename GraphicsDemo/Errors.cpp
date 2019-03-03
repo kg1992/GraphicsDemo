@@ -15,22 +15,22 @@ void HandleError(const char* const message)
 }
 
 void GetAndHandleGLError(const char *file, int line) {
-    GLenum err = glGetError();
+    //GLenum err = glGetError();
 
-    while (err != GL_NO_ERROR) {
-        std::string error;
+    //while (err != GL_NO_ERROR) {
+    //    std::string error;
 
-        switch (err) {
-        case GL_INVALID_OPERATION:      error = "INVALID_OPERATION";      break;
-        case GL_INVALID_ENUM:           error = "INVALID_ENUM";           break;
-        case GL_INVALID_VALUE:          error = "INVALID_VALUE";          break;
-        case GL_OUT_OF_MEMORY:          error = "OUT_OF_MEMORY";          break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:  error = "INVALID_FRAMEBUFFER_OPERATION";  break;
-        }
+    //    switch (err) {
+    //    case GL_INVALID_OPERATION:      error = "INVALID_OPERATION";      break;
+    //    case GL_INVALID_ENUM:           error = "INVALID_ENUM";           break;
+    //    case GL_INVALID_VALUE:          error = "INVALID_VALUE";          break;
+    //    case GL_OUT_OF_MEMORY:          error = "OUT_OF_MEMORY";          break;
+    //    case GL_INVALID_FRAMEBUFFER_OPERATION:  error = "INVALID_FRAMEBUFFER_OPERATION";  break;
+    //    }
 
-        std::cerr << "GL_" << error.c_str() << " - " << file << ":" << line << std::endl;
-        err = glGetError();
-    }
+    //    std::cerr << "GL_" << error.c_str() << " - " << file << ":" << line << std::endl;
+    //    err = glGetError();
+    //}
 }
 
 void HandleError(const std::wstring& message)
@@ -66,7 +66,6 @@ void APIENTRY OpenglCallbackFunction(GLenum source,
     GLsizei length,
     const GLchar* message,
     const void* userParam) {
-
     std::cout << "---------------------opengl-callback-start------------" << std::endl;
     std::cout << "message: " << message << std::endl;
     std::cout << "type: ";
@@ -91,3 +90,20 @@ void APIENTRY OpenglCallbackFunction(GLenum source,
     std::cout << "---------------------opengl-callback-end--------------" << std::endl;
 }
 
+void InitializeGLDebugging()
+{
+    if (glDebugMessageCallback) {
+        std::cout << "Register OpenGL debug callback " << std::endl;
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(OpenglCallbackFunction, nullptr);
+        GLuint unusedIds = 0;
+        glDebugMessageControl(GL_DONT_CARE,
+            GL_DONT_CARE,
+            GL_DONT_CARE,
+            0,
+            &unusedIds,
+            true);
+    }
+    else
+        std::cout << "glDebugMessageCallback not available" << std::endl;
+}

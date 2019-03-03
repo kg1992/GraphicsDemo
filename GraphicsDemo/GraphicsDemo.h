@@ -8,6 +8,7 @@
 #include "Camera.h"
 
 class Object;
+class ShaderProgram;
 
 class GraphicsDemo : public SystemComponent
 {
@@ -27,10 +28,11 @@ private:
     int m_lastMouseY;
     bool m_mousePosRecordStarted;
     std::vector<std::shared_ptr<Object>> m_objects;
-    std::vector<PointLight> m_pointLights;
     Camera m_camera;
 
-    void Render(GLuint program, Object& object);
+    void Render(ShaderProgram& program, Object& object);
+    void PrepareUniforms(ShaderProgram& program);
+    void AddGround();
 };
 
-#endif // GRAPHCIS_DEMO_H_
+#endif

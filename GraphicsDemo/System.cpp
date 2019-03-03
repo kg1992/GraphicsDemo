@@ -221,25 +221,10 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
         std::string glVersion((char*)glGetString(GL_VERSION));
         BOOL result = SetWindowTextA(hwnd, (std::string("Graphics Demo ( OpenGL Version : ") + glVersion + " )").c_str());
-        if (result == FALSE) {
-            HandleError(L"SetWindowText Fail.");
-        }
+        if (result == FALSE) HandleError(L"SetWindowText Fail.");
         std::cout << "OpenGL version : " << glVersion << std::endl;
 
-        if (glDebugMessageCallback) {
-            std::cout << "Register OpenGL debug callback " << std::endl;
-            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-            glDebugMessageCallback(OpenglCallbackFunction, nullptr);
-            GLuint unusedIds = 0;
-            glDebugMessageControl(GL_DONT_CARE,
-                GL_DONT_CARE,
-                GL_DONT_CARE,
-                0,
-                &unusedIds,
-                true);
-        }
-        else
-            std::cout << "glDebugMessageCallback not available" << std::endl;
+        InitializeGLDebugging();
 
         glEnable(GL_DEPTH_TEST);
         GET_AND_HANDLE_GL_ERROR();

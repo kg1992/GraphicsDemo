@@ -56,6 +56,8 @@ namespace
     const int VK_X = 0x58;
     const int VK_Y = 0x59;
     const int VK_Z = 0x5A;
+
+    const glm::vec4 s_worldLight(0, 0, 0, 1);
 }
 
 GraphicsDemo::GraphicsDemo()
@@ -72,6 +74,10 @@ void GraphicsDemo::OnStart()
     // Load, compile, link shader programs.
     ShaderPrograms::Init();
 
+    glUseProgram(ShaderPrograms::s_basic.Name());
+    // Initialize Uniform Object
+    PrepareUniforms(ShaderPrograms::s_basic);
+
     // Initial m_camera location.
     m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
 
@@ -82,41 +88,44 @@ void GraphicsDemo::OnStart()
 
     // Point light setup.
     PointLight pointLight;
-    pointLight.position = glm::vec3(0, 10, 0);;
-    m_pointLights.push_back(pointLight);
-        
-    std::shared_ptr<Object> pPlaneObject(new Object);
-    pPlaneObject->SetMesh(GeneratePlane());
-    pPlaneObject->SetScale(glm::vec3(100, 1, 100));
-    m_objects.push_back(pPlaneObject);
+    pointLight.position = glm::vec3(0, 10, 0);
+
+    // AddGround();
 }
 
 void GraphicsDemo::Update(float dt)
 {
+    //m_pointLights[0].position.x = std::sin(System::Instance()->CurrentTime());
+    //m_pointLights[0].position.y = std::cos(System::Instance()->CurrentTime());
 }
 
 void GraphicsDemo::Render()
 {
     glViewport(0, 0, m_clientWidth, m_clientHeight);
+    GET_AND_HANDLE_GL_ERROR();
     glClearColor(0, 0.8f, 0.7f, 1.0f);
+    GET_AND_HANDLE_GL_ERROR();
 
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    GET_AND_HANDLE_GL_ERROR();
 
-    // Render(object);
     for (auto& pObject : m_objects)
     {
         Render(ShaderPrograms::s_basic, *pObject);
     }
 
+    glClear(GL_DEPTH_BUFFER_BIT);
+    GET_AND_HANDLE_GL_ERROR();
+
     int peekViewWidth = m_clientWidth / 8;
     int peekViewHeight = m_clientHeight / 8;
-    GLuint programs[] = { ShaderPrograms::s_position, ShaderPrograms::s_uv, ShaderPrograms::s_normal };
-
-    glClear(GL_DEPTH_BUFFER_BIT);
-
+    ShaderProgram programs[] = { ShaderPrograms::s_position, 
+                                 ShaderPrograms::s_uv,
+                                 ShaderPrograms::s_normal };
     for (int i = 0; i < 3; ++i)
     {
         glViewport(peekViewWidth * i, 0, peekViewWidth, peekViewHeight);
+        GET_AND_HANDLE_GL_ERROR();
 
         for (auto& pObject : m_objects)
         {
@@ -191,15 +200,16 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         else if (wParam & MK_MBUTTON)
         {
+            const float Speed = 0.02f;
             // relative displacement from center to eye
             glm::vec3 r = m_camera.GetPosition() - m_camera.GetCenter();
 
             // revolve around center horizontally
-            r = glm::rotate(r, -dx * 0.05f, m_camera.GetUp());
+            r = glm::rotate(r, -dx * Speed, m_camera.GetUp());
 
             // revolve around center vertically
             glm::vec3 right = glm::normalize(glm::cross(r, m_camera.GetUp()));
-            r = glm::rotate(r, dy * 0.05f, right);
+            r = glm::rotate(r, dy * Speed, right);
             m_camera.SetPosition(m_camera.GetCenter() + r);
         }
 
@@ -215,7 +225,7 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         glm::vec3 disp = m_camera.GetCenter() - m_camera.GetPosition();
 
-        m_camera.SetPosition(m_camera.GetPosition() - disp * 0.025f * wheel / WHEEL_DELTA);
+        m_camera.SetPosition(m_camera.GetPosition() + disp * 0.025f * wheel / WHEEL_DELTA);
         break;
     }
 
@@ -235,17 +245,74 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
 }
 
-void GraphicsDemo::Render(GLuint program, Object& object)
+void GraphicsDemo::Render(ShaderProgram& program, Object& object)
 {
-    glUseProgram(program);
+    glUseProgram(program.Name());
+    GET_AND_HANDLE_GL_ERROR();
 
-    GLint mvLocation = glGetUniformLocation(program, "mvMatrix");
-    GLint projLocation = glGetUniformLocation(program, "projMatrix");
-    GLint eyeLocation = glGetUniformLocation(program, "eyeMatrix");
+    PrepareUniforms(program);
 
-    glUniformMatrix4fv(mvLocation, 1, GL_FALSE, (float*)&object.GetTransformMatrix()[0][0]);
+    GLint mwLocation = glGetUniformLocation(program.Name(), "mwMatrix");
+    GET_AND_HANDLE_GL_ERROR();
+    GLint mvLocation = glGetUniformLocation(program.Name(), "mvMatrix");
+    GET_AND_HANDLE_GL_ERROR();
+    GLint normalLocation = glGetUniformLocation(program.Name(), "normalMatrix");
+    GET_AND_HANDLE_GL_ERROR();
+    GLint projLocation = glGetUniformLocation(program.Name(), "projMatrix");
+    GET_AND_HANDLE_GL_ERROR();
+
+    glm::mat4x4 mvMatrix = m_camera.EyeMatrix() * object.GetTransformMatrix();
+    
+    glm::mat3x3 normalMatrix = glm::transpose(glm::inverse(mvMatrix));
+
+    glUniformMatrix4fv(mwLocation, 1, GL_FALSE, (float*)&object.GetTransformMatrix()[0][0]);
+    GET_AND_HANDLE_GL_ERROR();
+    glUniformMatrix4fv(mvLocation, 1, GL_FALSE, (float*)&mvMatrix[0][0]);
+    GET_AND_HANDLE_GL_ERROR();
+    glUniformMatrix3fv(normalLocation, 1, GL_FALSE, (float*)&normalMatrix[0][0]);
+    GET_AND_HANDLE_GL_ERROR();
     glUniformMatrix4fv(projLocation, 1, GL_FALSE, (float*)&m_camera.ProjectionMatrix()[0][0]);
-    glUniformMatrix4fv(eyeLocation, 1, GL_FALSE, (float*)&m_camera.EyeMatrix()[0][0]);
+    GET_AND_HANDLE_GL_ERROR();
 
     object.Render();
+}
+
+void SendUniform(GLuint program, const char* const str, float x, float y, float z)
+{
+    GLuint location = glGetUniformLocation(program, str);
+    glUniform3f(location, x, y, z);
+}
+
+void SendUniform(GLuint program, const char* const str, float x, float y, float z, float w)
+{
+    GLuint location = glGetUniformLocation(program, str);
+    glUniform4f(location, x, y, z, w);
+}
+
+void SendUniform(GLuint program, const char* const str, int count, GLfloat* v)
+{
+    GLuint location = glGetUniformLocation(program, str);
+    glUniform4fv(location, count, v);
+}
+
+void GraphicsDemo::PrepareUniforms(ShaderProgram& program)
+{
+    program.SendUniform("material.kd", 0.9f, 0.5f, 0.3f);
+    program.SendUniform("light.ld", 1.0f, 1.0f, 1.0f);
+    program.SendUniform("light.position", m_camera.EyeMatrix() * s_worldLight);
+    program.SendUniform("material.ka", 0.9f, 0.5f, 0.3f);
+    program.SendUniform("light.la", 0.4f, 0.4f, 0.4f);
+    program.SendUniform("material.ks", 0.8f, 0.8f, 0.8f);
+    program.SendUniform("light.ls", 1.0f, 1.0f, 1.0f);
+    program.SendUniform("material.shininess", 100.0f);
+}
+
+void GraphicsDemo::AddGround()
+{
+    // Ground object setup
+    std::shared_ptr<Object> pGround(new Object);
+    pGround->SetMesh(GeneratePlane());
+    // Scale to cover large area
+    pGround->SetScale(glm::vec3(100, 1, 100));
+    m_objects.push_back(pGround);
 }
