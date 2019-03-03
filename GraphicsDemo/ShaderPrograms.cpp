@@ -1,3 +1,8 @@
+/*
+    ShaderPrograms.cpp
+
+    basic vertex shader used for rendering most of the objects in GraphicsDemo project.
+*/
 #include <string>
 #include <fstream>
 #include <vector>
@@ -24,11 +29,9 @@ std::string ShaderProgram::GetShaderInfoLog(GLuint shader)
     std::vector<GLchar> buf;
     buf.resize(bufSize + 1);
 
-    // Get InfoLog
     glGetShaderInfoLog(shader, bufSize, nullptr, (GLchar*)buf.data());
     GET_AND_HANDLE_GL_ERROR();
 
-    // return buffer
     return std::string(buf.data());
 }
 
@@ -42,11 +45,9 @@ std::string ShaderProgram::GetProgramInfoLog(GLuint program)
     std::vector<GLchar> buf;
     buf.resize(bufSize + 1);
 
-    // Get InfoLog
     glGetProgramInfoLog(program, bufSize, nullptr, (GLchar*)buf.data());
     GET_AND_HANDLE_GL_ERROR();
 
-    // return buffer
     return std::string(buf.data());
 }
 
@@ -145,7 +146,7 @@ void ShaderProgram::SendUniform(const char* name, float x, float y, float z)
 
 void ShaderProgram::SendUniform(const char* name, float x, float y, float z, float w)
 {
-    glUniform3f(GetUniformLocation(name), x, y, z);
+    glUniform4f(GetUniformLocation(name), x, y, z, w);
     GET_AND_HANDLE_GL_ERROR();
 }
 
@@ -170,6 +171,15 @@ void ShaderProgram::SendUniform(const char* name, int i)
 void ShaderProgram::SendUniform(const char* name, const glm::vec4& v)
 {
     SendUniform(name, v.x, v.y, v.z, v.w);
+    GET_AND_HANDLE_GL_ERROR();
+}
+
+void ShaderProgram::SendUniformSubroutine(GLenum shaderType, const char* name)
+{
+    GLuint adsIndex = glGetSubroutineIndex(m_program, shaderType, name);
+    GET_AND_HANDLE_GL_ERROR();
+    glUniformSubroutinesuiv(m_program, 1, &adsIndex);
+    GET_AND_HANDLE_GL_ERROR();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

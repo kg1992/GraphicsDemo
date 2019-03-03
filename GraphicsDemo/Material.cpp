@@ -39,6 +39,7 @@ namespace
         return lResult;
     }
 }
+
 Material::Material()
     : m_diffuseMap(0)
     , m_specularMap(0)

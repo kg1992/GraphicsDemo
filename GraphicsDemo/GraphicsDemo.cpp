@@ -57,7 +57,7 @@ namespace
     const int VK_Y = 0x59;
     const int VK_Z = 0x5A;
 
-    const glm::vec4 s_worldLight(0, 0, 0, 1);
+    const glm::vec4 s_worldLight(0, 50, 0, 1);
 }
 
 GraphicsDemo::GraphicsDemo()
@@ -252,6 +252,9 @@ void GraphicsDemo::Render(ShaderProgram& program, Object& object)
 
     PrepareUniforms(program);
 
+    ShaderPrograms::s_basic.SendUniformSubroutine(GL_VERTEX_SHADER, "phongModel");
+    // ShaderPrograms::s_basic.SendUniformSubroutine(GL_VERTEX_SHADER, "diffuseOnly");
+
     GLint mwLocation = glGetUniformLocation(program.Name(), "mwMatrix");
     GET_AND_HANDLE_GL_ERROR();
     GLint mvLocation = glGetUniformLocation(program.Name(), "mvMatrix");
@@ -304,7 +307,7 @@ void GraphicsDemo::PrepareUniforms(ShaderProgram& program)
     program.SendUniform("light.la", 0.4f, 0.4f, 0.4f);
     program.SendUniform("material.ks", 0.8f, 0.8f, 0.8f);
     program.SendUniform("light.ls", 1.0f, 1.0f, 1.0f);
-    program.SendUniform("material.shininess", 100.0f);
+    program.SendUniform("material.shininess", 30.0f);
 }
 
 void GraphicsDemo::AddGround()

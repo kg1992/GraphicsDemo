@@ -1,3 +1,8 @@
+/*
+    AttributeArray.cpp
+
+    class AttributeArray implementation.
+*/
 #include "AttributeArray.h"
 #include "Errors.h"
 
@@ -21,7 +26,7 @@ namespace
     }
 }
 
-AttributeArray::AttributeArray(int size, GLenum type, int stride, int offset)
+AttributeArray::AttributeArray(int size, GLenum type, int stride, const void* offset)
     : m_bo(0)
     , m_size(size)
     , m_type(type)
@@ -31,7 +36,7 @@ AttributeArray::AttributeArray(int size, GLenum type, int stride, int offset)
 {
 }
 
-void AttributeArray::Fill(unsigned long size, void * data)
+void AttributeArray::Fill(GLsizeiptr size, void * data)
 {
     if (m_bo == 0)
         glGenBuffers(1, &m_bo);
@@ -42,13 +47,13 @@ void AttributeArray::Fill(unsigned long size, void * data)
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     GET_AND_HANDLE_GL_ERROR();
 
-    m_attributeCount = m_stride == 0 ? (size / GLEnumTypeToSize(m_type)) : (size / m_stride);
+    m_attributeCount = static_cast<int>(m_stride == 0 ? (size / GLEnumTypeToSize(m_type)) : (size / m_stride));
 }
 
 void AttributeArray::VertexAttribPointer(int index, GLboolean normalized)
 {
     glBindBuffer(GL_ARRAY_BUFFER, m_bo);
-    glVertexAttribPointer(index, m_size, m_type, normalized, m_stride, (const void*)m_offset);
+    glVertexAttribPointer(index, m_size, m_type, normalized, m_stride, reinterpret_cast<const void*>(m_offset));
     glEnableVertexAttribArray(index);
 }
 

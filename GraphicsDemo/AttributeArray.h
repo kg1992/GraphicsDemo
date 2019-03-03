@@ -1,3 +1,8 @@
+/*
+    AttributeArray.h
+
+    class AttributeArray definition. AttributeArray encapsulates Vertex Buffer Object(VBO).
+*/
 #ifndef ATTRIBUTE_ARRAY_
 #define ATTRIBUTE_ARRAY_
 
@@ -6,9 +11,9 @@
 class AttributeArray
 {
 public:
-    AttributeArray(int size, GLenum type, int stride, int offset);
+    AttributeArray(int size, GLenum type, int stride, const void* offset);
 
-    void Fill(unsigned long size, void* data);
+    void Fill(GLsizeiptr size, void* data);
 
     void VertexAttribPointer(int index, GLboolean normalized);
 
@@ -24,7 +29,7 @@ private:
     int m_size;
     GLenum m_type;
     int m_stride;
-    int m_offset;
+    const void* m_offset;
     int m_attributeCount;
 };
 

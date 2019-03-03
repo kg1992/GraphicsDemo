@@ -1,10 +1,26 @@
+/*
+    FbxLoader.cpp
+
+    Defines routines for loading FbxScene and converting it to GraphicsDemo project objects.
+
+    Dependencies:
+        FBX SDK 2019 - for FbxScene importing
+        stb_image.h - for texture file loading
+
+    Reference:
+        FbxSdk 'ViewScene' Demo
+
+    Todo:
+        Currently texture objects are saved in FbxNode UserDataPtr. Move it to somewhere else.
+
+    Changes:
+        190303 - Removed dependency on glm
+*/
 #include "SystemComponent.h"
 #include "Errors.h"
 #include <iostream>
 #include <fstream>
 #include <glad.h>
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
 #include <fbxsdk.h>
 #include <map>
 #include "Object.h"
@@ -137,9 +153,9 @@ namespace
                     lUVName = lUVNames[0];
                 }
 
-                std::vector<glm::vec3> positions;
-                std::vector<glm::vec3> normals;
-                std::vector<glm::vec2> uvs;
+                std::vector<float> positions;
+                std::vector<float> normals;
+                std::vector<float> uvs;
 
                 for (std::map<int, std::vector<int>>::iterator it = submeshes.begin(); it != submeshes.end(); ++it)
                 {
@@ -150,16 +166,21 @@ namespace
                         {
                             int controlPointIndex = pMesh->GetPolygonVertex(i, j);
                             FbxVector4 controlPoint = pMesh->GetControlPointAt(controlPointIndex);
-                            positions.push_back(glm::vec3(controlPoint[0], controlPoint[1], controlPoint[2]));
+                            positions.push_back(static_cast<float>(controlPoint[0]));
+                            positions.push_back(static_cast<float>(controlPoint[1]));
+                            positions.push_back(static_cast<float>(controlPoint[2]));
 
                             FbxVector4 fbxNormal;
                             pMesh->GetPolygonVertexNormal(i, j, fbxNormal);
-                            normals.push_back(glm::vec3(fbxNormal[0], fbxNormal[1], fbxNormal[2]));
+                            normals.push_back(static_cast<float>(fbxNormal[0]));
+                            normals.push_back(static_cast<float>(fbxNormal[1]));
+                            normals.push_back(static_cast<float>(fbxNormal[2]));
 
                             FbxVector2 fbxUv;
                             bool unmapped;
                             pMesh->GetPolygonVertexUV(i, j, lUVName, fbxUv, unmapped);
-                            uvs.push_back(glm::vec2(fbxUv[0], fbxUv[1]));
+                            uvs.push_back(static_cast<float>(fbxUv[0]));
+                            uvs.push_back(static_cast<float>(fbxUv[1]));
                         }
                     }
                 }
@@ -172,21 +193,21 @@ namespace
                     {
                         Mesh::SubMesh subMesh;
                         subMesh.begin = begin;
-                        subMesh.vertCount = it->second.size() * TRIANGLE_VERTEX_COUNT;
+                        subMesh.vertCount = static_cast<int>(it->second.size() * TRIANGLE_VERTEX_COUNT);
                         pMyMesh->AddSubMesh(subMesh);
                         begin += subMesh.vertCount;
                     }
                 }
                 AttributeArray aaPositions(3, GL_FLOAT, 0, 0);
-                aaPositions.Fill(positions.size() * sizeof(glm::vec3), positions.data());
+                aaPositions.Fill(positions.size() * sizeof(positions[0]), positions.data());
                 pMyMesh->AddAttributeArray(aaPositions);
 
                 AttributeArray aaUvs(2, GL_FLOAT, 0, 0);
-                aaUvs.Fill(uvs.size() * sizeof(glm::vec2), uvs.data());
+                aaUvs.Fill(uvs.size() * sizeof(uvs[0]), uvs.data());
                 pMyMesh->AddAttributeArray(aaUvs);
 
                 AttributeArray aaNormals(3, GL_FLOAT, 0, 0);
-                aaNormals.Fill(normals.size() * sizeof(glm::vec3), normals.data());
+                aaNormals.Fill(normals.size() * sizeof(normals[0]), normals.data());
                 pMyMesh->AddAttributeArray(aaNormals);
 
                 pObject->SetMesh(pMyMesh);

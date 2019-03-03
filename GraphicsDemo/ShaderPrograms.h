@@ -25,6 +25,8 @@ public:
 
     void SendUniform(const char* name, const glm::vec4& v);
 
+    void SendUniformSubroutine(GLenum shaderType, const char* name);
+
     GLuint Name() { return m_program; }
 
 private:

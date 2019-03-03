@@ -1,3 +1,8 @@
+/*
+    Errors.h
+
+    Error Handling Code.
+*/
 #ifndef ERRORS_H_
 #define ERRORS_H_
 
@@ -6,8 +11,10 @@
 #include <Windows.h>
 #include <glad.h>
 
+// comment out EXIT_ON_ERROR to stp assertive mode.
 #define EXIT_ON_ERROR
 
+// Every gl* call must accompany GET_AND_HANDL_GL_ERROR() right next line.
 #define GET_AND_HANDLE_GL_ERROR() GetAndHandleGLError(__FILE__,__LINE__)
 
 void GetAndHandleGLError(const char *file, int line);
