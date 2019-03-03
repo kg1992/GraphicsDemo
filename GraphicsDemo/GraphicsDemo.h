@@ -33,6 +33,7 @@ private:
     void Render(ShaderProgram& program, Object& object);
     void PrepareUniforms(ShaderProgram& program);
     void AddGround();
+    void DrawPlane();
 };
 
 #endif

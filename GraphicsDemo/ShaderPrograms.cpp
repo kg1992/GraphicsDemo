@@ -126,6 +126,12 @@ bool ShaderProgram::Init(const char* vertexShaderFilename, const char* fragmentS
     return true;
 }
 
+void ShaderProgram::Use()
+{
+    glUseProgram(m_program);
+    GET_AND_HANDLE_GL_ERROR();
+}
+
 void ShaderProgram::SendUniform(const char* name, float x)
 {
     glUniform1f(GetUniformLocation(name), x);
@@ -182,6 +188,18 @@ void ShaderProgram::SendUniformSubroutine(GLenum shaderType, const char* name)
     GET_AND_HANDLE_GL_ERROR();
 }
 
+void ShaderProgram::SendUniform(const char* name, int count, bool transpose, const glm::mat3& m)
+{
+    glUniformMatrix3fv(GetUniformLocation(name), count, transpose, &m[0][0]);
+    GET_AND_HANDLE_GL_ERROR();
+}
+
+void ShaderProgram::SendUniform(const char* name, int count, bool transpose, const glm::mat4& m)
+{
+    glUniformMatrix4fv(GetUniformLocation(name), count, transpose, &m[0][0]);
+    GET_AND_HANDLE_GL_ERROR();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void ShaderPrograms::Init()
@@ -190,9 +208,11 @@ void ShaderPrograms::Init()
     s_position.Init("basic.vert.glsl", "position.frag.glsl");
     s_uv.Init("basic.vert.glsl", "uv.frag.glsl");
     s_normal.Init("basic.vert.glsl", "normal.frag.glsl");
+    s_plane.Init("billboard.vert.glsl", "uv.frag.glsl");
 }
 
 ShaderProgram ShaderPrograms::s_basic;
 ShaderProgram ShaderPrograms::s_position;
 ShaderProgram ShaderPrograms::s_uv;
 ShaderProgram ShaderPrograms::s_normal;
+ShaderProgram ShaderPrograms::s_plane;

@@ -1,3 +1,11 @@
+/*
+    GraphicsDemo.cpp
+
+    class GraphicsDemo implementation.
+
+    Todo:
+        utilaize ShaderProgram to send matrix uniforms.
+*/
 #include <iostream>
 #include <glad.h>
 #define GLM_FORCE_SWIZZLE
@@ -108,6 +116,8 @@ void GraphicsDemo::Render()
 
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
+
+    DrawPlane();
 
     for (auto& pObject : m_objects)
     {
@@ -255,27 +265,12 @@ void GraphicsDemo::Render(ShaderProgram& program, Object& object)
     ShaderPrograms::s_basic.SendUniformSubroutine(GL_VERTEX_SHADER, "phongModel");
     // ShaderPrograms::s_basic.SendUniformSubroutine(GL_VERTEX_SHADER, "diffuseOnly");
 
-    GLint mwLocation = glGetUniformLocation(program.Name(), "mwMatrix");
-    GET_AND_HANDLE_GL_ERROR();
-    GLint mvLocation = glGetUniformLocation(program.Name(), "mvMatrix");
-    GET_AND_HANDLE_GL_ERROR();
-    GLint normalLocation = glGetUniformLocation(program.Name(), "normalMatrix");
-    GET_AND_HANDLE_GL_ERROR();
-    GLint projLocation = glGetUniformLocation(program.Name(), "projMatrix");
-    GET_AND_HANDLE_GL_ERROR();
-
     glm::mat4x4 mvMatrix = m_camera.EyeMatrix() * object.GetTransformMatrix();
-    
     glm::mat3x3 normalMatrix = glm::transpose(glm::inverse(mvMatrix));
-
-    glUniformMatrix4fv(mwLocation, 1, GL_FALSE, (float*)&object.GetTransformMatrix()[0][0]);
-    GET_AND_HANDLE_GL_ERROR();
-    glUniformMatrix4fv(mvLocation, 1, GL_FALSE, (float*)&mvMatrix[0][0]);
-    GET_AND_HANDLE_GL_ERROR();
-    glUniformMatrix3fv(normalLocation, 1, GL_FALSE, (float*)&normalMatrix[0][0]);
-    GET_AND_HANDLE_GL_ERROR();
-    glUniformMatrix4fv(projLocation, 1, GL_FALSE, (float*)&m_camera.ProjectionMatrix()[0][0]);
-    GET_AND_HANDLE_GL_ERROR();
+    program.SendUniform("mwMatrix", 1, false, object.GetTransformMatrix());
+    program.SendUniform("mvMatrix", 1, false, mvMatrix);
+    program.SendUniform("normalMatrix", 1, false, normalMatrix);
+    program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
 
     object.Render();
 }
@@ -318,4 +313,20 @@ void GraphicsDemo::AddGround()
     // Scale to cover large area
     pGround->SetScale(glm::vec3(100, 1, 100));
     m_objects.push_back(pGround);
+}
+
+void GraphicsDemo::DrawPlane()
+{
+    auto& program = ShaderPrograms::s_plane;
+
+    program.Use();
+
+    program.SendUniform("wCenterPos", 0, 0, 0, 1);
+    program.SendUniform("wScale", 100.0f, 50.0f);
+
+    program.SendUniform("wvMatrix", 1, false, m_camera.EyeMatrix());
+    program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
+
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    GET_AND_HANDLE_GL_ERROR();
 }

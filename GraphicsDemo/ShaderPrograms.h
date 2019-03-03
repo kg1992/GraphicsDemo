@@ -9,6 +9,8 @@ class ShaderProgram
 public:
     bool Init(const char* vertexShaderFilename, const char* fragmentShaderFilename);
 
+    void Use();
+
     void SendUniform(const char* name, float x);
 
     void SendUniform(const char* name, float x, float y);
@@ -26,6 +28,10 @@ public:
     void SendUniform(const char* name, const glm::vec4& v);
 
     void SendUniformSubroutine(GLenum shaderType, const char* name);
+
+    void SendUniform(const char* name, int count, bool transpose, const glm::mat3& m);
+
+    void SendUniform(const char* name, int count, bool transpose, const glm::mat4& m);
 
     GLuint Name() { return m_program; }
 
@@ -50,6 +56,7 @@ public:
     static ShaderProgram s_position;
     static ShaderProgram s_uv;
     static ShaderProgram s_normal;
+    static ShaderProgram s_plane;
 
     static void Init();
 };
