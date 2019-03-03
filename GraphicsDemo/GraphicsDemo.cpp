@@ -7,6 +7,7 @@
         utilaize ShaderProgram to send matrix uniforms.
 */
 #include <iostream>
+#include <sstream>
 #include <glad.h>
 #define GLM_FORCE_SWIZZLE
 #include <glm/glm.hpp>
@@ -83,8 +84,8 @@ void GraphicsDemo::OnStart()
     ShaderPrograms::Init();
 
     glUseProgram(ShaderPrograms::s_basic.Name());
-    // Initialize Uniform Object
-    PrepareUniforms(ShaderPrograms::s_basic);
+    
+    PrepareLights();
 
     // Initial m_camera location.
     m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
@@ -103,8 +104,8 @@ void GraphicsDemo::OnStart()
 
 void GraphicsDemo::Update(float dt)
 {
-    //m_pointLights[0].position.x = std::sin(System::Instance()->CurrentTime());
-    //m_pointLights[0].position.y = std::cos(System::Instance()->CurrentTime());
+    //m_pointLights[0].position.x = std::sin(System::Instance()->CurrentTime()) * 5;
+    //m_pointLights[0].position.y = std::cos(System::Instance()->CurrentTime()) * 5;
 }
 
 void GraphicsDemo::Render()
@@ -262,7 +263,7 @@ void GraphicsDemo::Render(ShaderProgram& program, Object& object)
 
     PrepareUniforms(program);
 
-    ShaderPrograms::s_basic.SendUniformSubroutine(GL_VERTEX_SHADER, "phongModel");
+    // ShaderPrograms::s_basic.SendUniformSubroutine(GL_VERTEX_SHADER, "phongModel");
     // ShaderPrograms::s_basic.SendUniformSubroutine(GL_VERTEX_SHADER, "diffuseOnly");
 
     glm::mat4x4 mvMatrix = m_camera.EyeMatrix() * object.GetTransformMatrix();
@@ -275,34 +276,17 @@ void GraphicsDemo::Render(ShaderProgram& program, Object& object)
     object.Render();
 }
 
-void SendUniform(GLuint program, const char* const str, float x, float y, float z)
-{
-    GLuint location = glGetUniformLocation(program, str);
-    glUniform3f(location, x, y, z);
-}
-
-void SendUniform(GLuint program, const char* const str, float x, float y, float z, float w)
-{
-    GLuint location = glGetUniformLocation(program, str);
-    glUniform4f(location, x, y, z, w);
-}
-
-void SendUniform(GLuint program, const char* const str, int count, GLfloat* v)
-{
-    GLuint location = glGetUniformLocation(program, str);
-    glUniform4fv(location, count, v);
-}
-
 void GraphicsDemo::PrepareUniforms(ShaderProgram& program)
 {
-    program.SendUniform("material.kd", 0.9f, 0.5f, 0.3f);
-    program.SendUniform("light.ld", 1.0f, 1.0f, 1.0f);
-    program.SendUniform("light.position", m_camera.EyeMatrix() * s_worldLight);
-    program.SendUniform("material.ka", 0.9f, 0.5f, 0.3f);
-    program.SendUniform("light.la", 0.4f, 0.4f, 0.4f);
-    program.SendUniform("material.ks", 0.8f, 0.8f, 0.8f);
-    program.SendUniform("light.ls", 1.0f, 1.0f, 1.0f);
-    program.SendUniform("material.shininess", 30.0f);
+    for (int i = 0; i < 5; ++i )
+    {
+        SendPointLight(program, i, m_pointLights[i]);
+    }
+
+    program.SendUniform("material.kd", 0.4f, 0.4f, 0.4f);
+    program.SendUniform("material.ks", 0.9f, 0.9f, 0.9f);
+    program.SendUniform("material.ka", 0.2f, 0.2f, 0.2f);
+    program.SendUniform("material.shininess", 180.0f);
 }
 
 void GraphicsDemo::AddGround()
@@ -317,16 +301,93 @@ void GraphicsDemo::AddGround()
 
 void GraphicsDemo::DrawPlane()
 {
-    auto& program = ShaderPrograms::s_plane;
+    for (PointLight& pointLight : m_pointLights)
+    {
+        auto& program = ShaderPrograms::s_pointLight;
 
-    program.Use();
+        program.Use();
 
-    program.SendUniform("wCenterPos", 0, 0, 0, 1);
-    program.SendUniform("wScale", 100.0f, 50.0f);
+        program.SendUniform("wCenterPos", glm::vec4(pointLight.position, 1));
+        program.SendUniform("wScale", 5.0f, 5.0f);
 
-    program.SendUniform("wvMatrix", 1, false, m_camera.EyeMatrix());
-    program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
+        program.SendUniform("wvMatrix", 1, false, m_camera.EyeMatrix());
+        program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
 
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-    GET_AND_HANDLE_GL_ERROR();
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        GET_AND_HANDLE_GL_ERROR();
+    }
+}
+
+void GraphicsDemo::PrepareLights()
+{
+    m_pointLights.resize(5);
+
+    for (int i = 0; i < 5; ++i)
+    {
+        std::stringstream name;
+        name << "light[" << i << "].Position";
+        float x = 2.0f * cosf((glm::two_pi<float>() / 5) * i);
+        float z = 2.0f * sinf((glm::two_pi<float>() / 5) * i);
+        m_pointLights[i].position = glm::vec4(x, 1.2f, z + 1.0f, 1.0f) * 10;
+    }
+    PointLight pl;
+
+    m_pointLights[0].la = glm::vec3(0.0f, 0.2f, 0.2f);
+    m_pointLights[1].la = glm::vec3(0.0f, 0.0f, 0.2f);
+    m_pointLights[2].la = glm::vec3(0.2f, 0.0f, 0.0f);
+    m_pointLights[3].la = glm::vec3(0.0f, 0.2f, 0.0f);
+    m_pointLights[4].la = glm::vec3(0.2f, 0.2f, 0.2f);
+
+    m_pointLights[0].ld = glm::vec3(0.0f, 0.8f, 0.8f);
+    m_pointLights[1].ld = glm::vec3(0.0f, 0.0f, 0.8f);
+    m_pointLights[2].ld = glm::vec3(0.8f, 0.0f, 0.0f);
+    m_pointLights[3].ld = glm::vec3(0.0f, 0.8f, 0.0f);
+    m_pointLights[4].ld = glm::vec3(0.8f, 0.8f, 0.8f);
+
+    m_pointLights[0].ls = glm::vec3(0.0f, 0.8f, 0.8f);
+    m_pointLights[1].ls = glm::vec3(0.0f, 0.0f, 0.8f);
+    m_pointLights[2].ls = glm::vec3(0.8f, 0.0f, 0.0f);
+    m_pointLights[3].ls = glm::vec3(0.0f, 0.8f, 0.0f);
+    m_pointLights[4].ls = glm::vec3(0.8f, 0.8f, 0.8f);
+
+    m_pointLights.push_back(pl);
+}
+
+void GraphicsDemo::SendPointLight(ShaderProgram& program, int index, PointLight& light)
+{
+    //std::stringstream ss;
+    //std::string si = std::to_string(index);
+
+    //ss << "light[" << index << "].la";
+    //program.SendUniform(ss.str().c_str(), light.la);
+    //ss.clear();
+
+    //ss << "light[" << index << "].ld";
+    //program.SendUniform(ss.str().c_str(), light.ld);
+    //ss.clear();
+
+    //ss << "light[" << index << "].ls";
+    //program.SendUniform(ss.str().c_str(), light.ls);
+    //ss.clear();
+
+    //ss << "light[" << index << "].position";
+    //program.SendUniform(ss.str().c_str(), m_camera.EyeMatrix() * glm::vec4(light.position, 1));
+    //ss.clear();
+
+    ////////////////////////////////////////
+
+    std::stringstream ss;
+    std::string si = std::to_string(index);
+
+    ss << "light[" << index << "].la";
+    program.SendUniform(ss.str().c_str(), light.la);
+    std::stringstream().swap(ss);
+
+    ss << "light[" << index << "].l";
+    program.SendUniform(ss.str().c_str(), light.ld);
+    std::stringstream().swap(ss);
+
+    ss << "light[" << index << "].position";
+    program.SendUniform(ss.str().c_str(), m_camera.EyeMatrix() * glm::vec4(light.position, 1));
+    std::stringstream().swap(ss);
 }

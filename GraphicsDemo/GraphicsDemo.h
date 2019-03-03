@@ -29,11 +29,14 @@ private:
     bool m_mousePosRecordStarted;
     std::vector<std::shared_ptr<Object>> m_objects;
     Camera m_camera;
+    std::vector<PointLight> m_pointLights;
 
     void Render(ShaderProgram& program, Object& object);
     void PrepareUniforms(ShaderProgram& program);
     void AddGround();
     void DrawPlane();
+    void PrepareLights();
+    void SendPointLight(ShaderProgram& program, int index, PointLight& light);
 };
 
 #endif

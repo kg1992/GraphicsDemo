@@ -1,3 +1,8 @@
+/*
+    Lights.h
+
+    PointLight, SpotLight, DirecitonalLight definition.
+*/
 #ifndef LIGHTS_H_
 #define LIGHTS_H_
 

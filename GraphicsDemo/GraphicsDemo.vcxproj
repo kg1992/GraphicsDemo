@@ -212,6 +212,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="basic.frag.glsl" />
+    <None Include="circle.frag.glsl" />
     <None Include="normal.frag.glsl" />
     <None Include="billboard.vert.glsl" />
     <None Include="position.frag.glsl" />

@@ -10,13 +10,17 @@
 
 uniform sampler2D s;
 
-uniform vec3 lightPosition;
-
 in vec2 vUv;
 in vec3 vFrontColor;
-in vec3 vBackColor;
 
 out vec4 FragColor;
+
+void main(void)
+{
+	vec4 diffuse = texture( s, vec2(vUv.x, vUv.y) );
+
+	FragColor = vec4(vFrontColor, 1);
+}
 
 /*
  Function : latticeTest
@@ -34,25 +38,4 @@ out vec4 FragColor;
 bool latticeTest(float scale, float threshold)
 {
 	return all(greaterThan( fract(vUv * scale), vec2(threshold, threshold) ));
-}
-
-void main(void)
-{
-	vec4 diffuse = texture( s, vec2(vUv.x, vUv.y) );
-
-	const float scale = 100.0;
-	const float threshold = 0.2;
-	if( latticeTest(scale, threshold) )
-	{
-		discard;
-	}
-
-	if( gl_FrontFacing )
-	{
-		FragColor = vec4(vFrontColor, 1);
-	}
-	else
-	{
-		FragColor = vec4(vBackColor, 1);
-	}
 }

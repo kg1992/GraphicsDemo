@@ -15,6 +15,7 @@
 GLuint ShaderProgram::GetUniformLocation(const char* name)
 {
     GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1) DebugBreak();
     GET_AND_HANDLE_GL_ERROR();
     return location;
 }
@@ -174,10 +175,14 @@ void ShaderProgram::SendUniform(const char* name, int i)
     GET_AND_HANDLE_GL_ERROR();
 }
 
+void ShaderProgram::SendUniform(const char* name, const glm::vec3& v)
+{
+    SendUniform(name, v.x, v.y, v.z);
+}
+
 void ShaderProgram::SendUniform(const char* name, const glm::vec4& v)
 {
     SendUniform(name, v.x, v.y, v.z, v.w);
-    GET_AND_HANDLE_GL_ERROR();
 }
 
 void ShaderProgram::SendUniformSubroutine(GLenum shaderType, const char* name)
@@ -209,6 +214,7 @@ void ShaderPrograms::Init()
     s_uv.Init("basic.vert.glsl", "uv.frag.glsl");
     s_normal.Init("basic.vert.glsl", "normal.frag.glsl");
     s_plane.Init("billboard.vert.glsl", "uv.frag.glsl");
+    s_pointLight.Init("billboard.vert.glsl", "circle.frag.glsl");
 }
 
 ShaderProgram ShaderPrograms::s_basic;
@@ -216,3 +222,4 @@ ShaderProgram ShaderPrograms::s_position;
 ShaderProgram ShaderPrograms::s_uv;
 ShaderProgram ShaderPrograms::s_normal;
 ShaderProgram ShaderPrograms::s_plane;
+ShaderProgram ShaderPrograms::s_pointLight;

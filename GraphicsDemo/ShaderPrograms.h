@@ -25,6 +25,8 @@ public:
 
     void SendUniform(const char* name, int i);
 
+    void SendUniform(const char* name, const glm::vec3& v);
+
     void SendUniform(const char* name, const glm::vec4& v);
 
     void SendUniformSubroutine(GLenum shaderType, const char* name);
@@ -57,6 +59,7 @@ public:
     static ShaderProgram s_uv;
     static ShaderProgram s_normal;
     static ShaderProgram s_plane;
+    static ShaderProgram s_pointLight;
 
     static void Init();
 };
