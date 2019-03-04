@@ -12,11 +12,11 @@
 #include "ShaderPrograms.h"
 #include "Errors.h"
 
-GLuint ShaderProgram::GetUniformLocation(const char* name)
+GLint ShaderProgram::GetUniformLocation(const char* name)
 {
     GLint location = glGetUniformLocation(m_program, name);
-    if (location == -1) DebugBreak();
     GET_AND_HANDLE_GL_ERROR();
+    if (location == -1) DebugBreak();
     return location;
 }
 
@@ -96,22 +96,18 @@ GLuint ShaderProgram::CompileShaderFromSourceFile(GLenum type, const std::string
     return shader;
 }
 
-bool ShaderProgram::Init(const char* vertexShaderFilename, const char* fragmentShaderFilename)
+bool ShaderProgram::Init(const char* name, const char* vertexShaderFilename, const char* fragmentShaderFilename)
 {
     GLuint vertexShader = CompileShaderFromSourceFile(GL_VERTEX_SHADER, vertexShaderFilename);
     GLuint fragmentShader = CompileShaderFromSourceFile(GL_FRAGMENT_SHADER, fragmentShaderFilename);
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
-    GET_AND_HANDLE_GL_ERROR();
     glAttachShader(program, fragmentShader);
-    GET_AND_HANDLE_GL_ERROR();
     glLinkProgram(program);
-    GET_AND_HANDLE_GL_ERROR();
 
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
-    GET_AND_HANDLE_GL_ERROR();
     if (success == GL_FALSE) {
         std::cerr << __FUNCTION__ << " : Faield to link program. Log : " << std::endl
                   << GetProgramInfoLog(program) << std::endl;
@@ -123,6 +119,7 @@ bool ShaderProgram::Init(const char* vertexShaderFilename, const char* fragmentS
     glDeleteShader(fragmentShader);
     GET_AND_HANDLE_GL_ERROR();
 
+    m_name = name;
     m_program = program;
     return true;
 }
@@ -135,43 +132,50 @@ void ShaderProgram::Use()
 
 void ShaderProgram::SendUniform(const char* name, float x)
 {
-    glUniform1f(GetUniformLocation(name), x);
+    GLint location = GetUniformLocation(name);
+    glUniform1f(location, x);
     GET_AND_HANDLE_GL_ERROR();
 }
 
 void ShaderProgram::SendUniform(const char* name, float x, float y)
 {
-    glUniform2f(GetUniformLocation(name), x, y);
+    GLint location = GetUniformLocation(name);
+    glUniform2f(location, x, y);
     GET_AND_HANDLE_GL_ERROR();
 }
 
 void ShaderProgram::SendUniform(const char* name, float x, float y, float z)
 {
-    glUniform3f(GetUniformLocation(name), x, y, z);
+    GLint location = GetUniformLocation(name);
+    glUniform3f(location, x, y, z);
     GET_AND_HANDLE_GL_ERROR();
 }
 
 void ShaderProgram::SendUniform(const char* name, float x, float y, float z, float w)
 {
-    glUniform4f(GetUniformLocation(name), x, y, z, w);
+    GLint location = GetUniformLocation(name);
+    glUniform4f(location, x, y, z, w);
     GET_AND_HANDLE_GL_ERROR();
 }
 
 void ShaderProgram::SendUniform3fv(const char* name, int count, float* fv)
 {
-    glUniform3fv(GetUniformLocation(name), count, fv);
+    GLint location = GetUniformLocation(name);
+    glUniform3fv(location, count, fv);
     GET_AND_HANDLE_GL_ERROR();
 }
 
 void ShaderProgram::SendUniform4fv(const char* name, int count, float *fv)
 {
-    glUniform4fv(GetUniformLocation(name), count, fv);
+    GLint location = GetUniformLocation(name);
+    glUniform4fv(location, count, fv);
     GET_AND_HANDLE_GL_ERROR();
 }
 
 void ShaderProgram::SendUniform(const char* name, int i)
 {
-    glUniform1i(GetUniformLocation(name), i);
+    GLint location = GetUniformLocation(name);
+    glUniform1i(location, i);
     GET_AND_HANDLE_GL_ERROR();
 }
 
@@ -205,16 +209,144 @@ void ShaderProgram::SendUniform(const char* name, int count, bool transpose, con
     GET_AND_HANDLE_GL_ERROR();
 }
 
+bool ShaderProgram::TrySendUniform(const char* name, int count, bool transpose, const glm::mat3& m)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniformMatrix3fv(location, count, transpose, &m[0][0]);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
+bool ShaderProgram::TrySendUniform(const char* name, int count, bool transpose, const glm::mat4& m)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniformMatrix4fv(location, count, transpose, &m[0][0]);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
+void ShaderProgram::GetProgramiv(GLenum pname, GLint& parameter)
+{
+    glGetProgramiv(m_program, pname, &parameter);
+    GET_AND_HANDLE_GL_ERROR();
+}
+
+// GL_TRUE if program is currently flagged for deletion, and GL_FALSE otherwise.
+
+GLboolean ShaderProgram::GetDeleteStatus()
+{
+    GLint param;
+    GetProgramiv(GL_DELETE_STATUS, param);
+    return param;
+}
+
+// GL_TRUE if the last link operation on program was successful, and GL_FALSE otherwise.
+
+GLboolean ShaderProgram::GetLinkStatus()
+{
+    GLint param;
+    GetProgramiv(GL_LINK_STATUS, param);
+    return param;
+}
+
+// GL_TRUE or if the last validation operation on program was successful, and GL_FALSE otherwise.
+
+GLboolean ShaderProgram::GetValidateStatus()
+{
+    GLint param;
+    GetProgramiv(GL_VALIDATE_STATUS, param);
+    return param;
+}
+
+// the number of characters in the information log for program including the null termination character(i.e., the size of the character buffer required to store the information log).If program has no information log, a value of 0 is returned.
+
+GLint ShaderProgram::GetInfoLogLength()
+{
+    GLint param;
+    GetProgramiv(GL_INFO_LOG_LENGTH, param);
+    return param;
+}
+
+// the number of shader objects attached to program.
+
+GLint ShaderProgram::GetAttachedShaders()
+{
+    GLint param;
+    GetProgramiv(GL_ATTACHED_SHADERS, param);
+    return param;
+}
+
+// the number of active attribute variables for program.
+
+GLint ShaderProgram::GetActiveAttributes()
+{
+    GLint param;
+    GetProgramiv(GL_ACTIVE_ATTRIBUTES, param);
+    return param;
+}
+
+// the length of the longest active attribute name for program, including the null termination character(i.e., the size of the character buffer required to store the longest attribute name).If no active attributes exist, 0 is returned.
+
+GLint ShaderProgram::GetActiveAttributeMaxLength()
+{
+    GLint param;
+    GetProgramiv(GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, param);
+    return param;
+}
+
+// the number of active uniform variables for program.
+
+GLint ShaderProgram::GetActiveUniformsCount()
+{
+    GLint param;
+    GetProgramiv(GL_ACTIVE_UNIFORMS, param);
+    return param;
+}
+
+// the length of the longest active uniform variable name for program, including the null termination character(i.e., the size of the character buffer required to store the longest uniform variable name).If no active uniform variables exist, 0 is returned.
+
+GLint ShaderProgram::GetActiveUniformMaxLength()
+{
+    GLint param;
+    GetProgramiv(GL_ACTIVE_UNIFORM_MAX_LENGTH, param);
+    return param;
+}
+
+//GLint activeUniformCount = program.GetActiveUniformsCount();
+
+//std::vector<std::string> names;
+
+//for (int i = 0; i < activeUniformCount; i++)
+//{
+//    const int BufferSize = 0x100;
+//    std::vector<GLchar> buffer(BufferSize, '\0');
+//    GLuint length = BufferSize;
+//    GLint varNameLength;
+//    GLint varSize;
+//    GLenum varType;
+//    glGetActiveUniform(program.Handle(), i, BufferSize, &varNameLength, &varSize, &varType, buffer.data());
+//    buffer.resize(length);
+//    names.push_back(std::string(buffer.begin(), buffer.end()));
+//}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void ShaderPrograms::Init()
 {
-    s_basic.Init("basic.vert.glsl", "basic.frag.glsl");
-    s_position.Init("basic.vert.glsl", "position.frag.glsl");
-    s_uv.Init("basic.vert.glsl", "uv.frag.glsl");
-    s_normal.Init("basic.vert.glsl", "normal.frag.glsl");
-    s_plane.Init("billboard.vert.glsl", "uv.frag.glsl");
-    s_pointLight.Init("billboard.vert.glsl", "circle.frag.glsl");
+    s_basic.Init("Basic", "basic.vert.glsl", "basic.frag.glsl");
+    s_position.Init("Position","basic.vert.glsl", "position.frag.glsl");
+    s_uv.Init("UV", "basic.vert.glsl", "uv.frag.glsl");
+    s_normal.Init("Normal", "basic.vert.glsl", "normal.frag.glsl");
+    s_plane.Init("Plane", "billboard.vert.glsl", "uv.frag.glsl");
+    s_pointLight.Init("Billboard", "billboard.vert.glsl", "circle.frag.glsl");
+    s_phong.Init("Phong", "phong.vert.glsl", "phong.frag.glsl");
+    s_axes.Init("Axes", "axes.vert.glsl", "color.frag.glsl");
 }
 
 ShaderProgram ShaderPrograms::s_basic;
@@ -223,3 +355,5 @@ ShaderProgram ShaderPrograms::s_uv;
 ShaderProgram ShaderPrograms::s_normal;
 ShaderProgram ShaderPrograms::s_plane;
 ShaderProgram ShaderPrograms::s_pointLight;
+ShaderProgram ShaderPrograms::s_phong;
+ShaderProgram ShaderPrograms::s_axes;

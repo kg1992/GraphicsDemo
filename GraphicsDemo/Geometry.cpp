@@ -79,5 +79,35 @@ std::shared_ptr<Mesh> GeneratePlane()
     AttributeArray aaPosition(3, GL_FLOAT, 0, 0);
     aaPosition.Fill(sizeof(positions), positions);
     pMesh->AddAttributeArray(aaPosition);
+
+    float uvs[] = 
+    {
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f
+    };
+    AttributeArray aaUv(2, GL_FLOAT, 0, 0);
+    aaUv.Fill(sizeof(uvs), uvs);
+    pMesh->AddAttributeArray(aaUv);
+
+    float normals[] =
+    {
+        0, 1.0f, 0,
+        0, 1.0f, 0,
+        0, 1.0f, 0,
+
+        0, 1.0f, 0,
+        0, 1.0f, 0,
+        0, 1.0f, 0,
+    };
+
+    AttributeArray aaNormal(3, GL_FLOAT, 0, 0);
+    aaNormal.Fill(sizeof(normals), normals);
+    pMesh->AddAttributeArray(aaNormal);
+
     return pMesh;
 }

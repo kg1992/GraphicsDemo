@@ -9,6 +9,7 @@
 
 class Object;
 class ShaderProgram;
+class Material;
 
 class GraphicsDemo : public SystemComponent
 {
@@ -31,12 +32,17 @@ private:
     Camera m_camera;
     std::vector<PointLight> m_pointLights;
 
-    void Render(ShaderProgram& program, Object& object);
-    void PrepareUniforms(ShaderProgram& program);
+    void RenderObject(ShaderProgram& program, Object& object);
     void AddGround();
-    void DrawPlane();
+    void DrawPointLights();
+    void DrawScene();
+    void DrawPeekViewports();
+    void DrawObjectCenter();
     void PrepareLights();
     void SendPointLight(ShaderProgram& program, int index, PointLight& light);
+    void SendLights(ShaderProgram& program, int count);
+    void SendMaterial(ShaderProgram& program);
+    void SendMatrices(ShaderProgram& program, Object& object);
 };
 
 #endif

@@ -211,14 +211,7 @@
     <ClCompile Include="System.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic.frag.glsl" />
-    <None Include="circle.frag.glsl" />
-    <None Include="normal.frag.glsl" />
-    <None Include="billboard.vert.glsl" />
-    <None Include="position.frag.glsl" />
     <None Include="PostBuild.bat" />
-    <None Include="basic.vert.glsl" />
-    <None Include="uv.frag.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Grave.txt" />

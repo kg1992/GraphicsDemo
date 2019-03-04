@@ -23,7 +23,7 @@ uniform mat4 mvMatrix;
 uniform mat3 normalMatrix;
 uniform mat4 projMatrix;
 
-const int LightCount = 5;
+const int LightCount = 1;
 
 uniform struct LightInfo
 {
@@ -49,6 +49,10 @@ vec3 phongModel( int lightIndex, vec3 position, vec3 n )
 {
 	vec3 ambient = light[lightIndex].la * material.ka;
 	vec3 s = normalize(light[lightIndex].position.xyz - position);
+	if( light[lightIndex].position.w == 0.0 )
+		s = normalize( light[lightIndex].position.xyz );
+	else
+		s = normalize( light[lightIndex].position.xyz - position );
 	float sDotN = max( dot(s,n), 0.0);
 	vec3 diffuse = material.kd * sDotN;
 	vec3 spec = vec3(0.0);

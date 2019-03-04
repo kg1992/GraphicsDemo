@@ -44,9 +44,10 @@ void main()
 	lookMatrix[2] = vec4(f,0);
 	lookMatrix[3] = vCenterPos;
 	
-	vec4 v = lookMatrix * plane[gl_VertexID];
+	vec4 v = plane[gl_VertexID];
 	v.x *= wScale.x;
 	v.y *= wScale.y;
+	v = lookMatrix * v;
 	gl_Position = projMatrix * v;
 	vUv = (plane[gl_VertexID].xy + 1) * .5;
 }
