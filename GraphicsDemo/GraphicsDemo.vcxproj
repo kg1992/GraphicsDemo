@@ -72,29 +72,29 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>$(FREETYPE2)/include;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>lib\$(PlatformTarget)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
-    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(FREETYPE2)/include;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
+    <LibraryPath>lib\$(PlatformTarget)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>$(FREETYPE2)/include;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>lib\$(PlatformTarget)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
-    <LibraryPath>$(FBX_SDK)lib\vs2015\$(PlatformShortName)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(FREETYPE2)/include;$(FBX_SDK)include;$(GLAD);$(GLM);$(IncludePath);</IncludePath>
+    <LibraryPath>lib\$(PlatformTarget)\$(Configuration);$(GLAD)vc\$(PlatformShortName)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -109,7 +109,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libfbxsdk.lib;OpenGL32.lib;glad.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freetype.lib;libfbxsdk.lib;OpenGL32.lib;glad.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>PostBuild.bat $(SolutionDir) $(ProjectDir) $(PlatformTarget) $(Configuration)</Command>
@@ -126,7 +126,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libfbxsdk.lib;OpenGL32.lib;glad.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freetype.lib;libfbxsdk.lib;OpenGL32.lib;glad.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>PostBuild.bat $(SolutionDir) $(ProjectDir) $(PlatformTarget) $(Configuration)</Command>
@@ -147,7 +147,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libfbxsdk.lib;OpenGL32.lib;glad.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freetype.lib;libfbxsdk.lib;OpenGL32.lib;glad.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>PostBuild.bat $(SolutionDir) $(ProjectDir) $(PlatformTarget) $(Configuration)</Command>
@@ -170,7 +170,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>libfbxsdk.lib;OpenGL32.lib;glad.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freetype.lib;libfbxsdk.lib;OpenGL32.lib;glad.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>PostBuild.bat $(SolutionDir) $(ProjectDir) $(PlatformTarget) $(Configuration)</Command>
@@ -180,6 +180,7 @@
     <ClInclude Include="AttributeArray.h" />
     <ClInclude Include="Clock.h" />
     <ClInclude Include="Errors.h" />
+    <ClInclude Include="FontRenderer.h" />
     <ClInclude Include="GraphicsDemo.h" />
     <ClInclude Include="Lights.h" />
     <ClInclude Include="Material.h" />
@@ -199,6 +200,7 @@
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="Errors.cpp" />
     <ClCompile Include="FbxLoader.cpp" />
+    <ClCompile Include="FontRenderer.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GraphicsDemo.cpp" />
     <ClCompile Include="main.cpp" />

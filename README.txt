@@ -7,12 +7,14 @@ Graphics Demo
 	[ References ]
 https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context_(WGL)
 https://boycoding.tistory.com/134?category=990597
+https://learnopengl.com/In-Practice/Text-Rendering
 
 	[ External Dependencies ]
 OpenGL
 glad
 glm
 FbxSdk
+Freetype
 
 	[ Control ]
 Wheel = Magnify/Minify

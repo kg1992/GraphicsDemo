@@ -23,6 +23,7 @@
 #include "Object.h"
 #include "stb_image.h"
 #include "ShaderPrograms.h"
+#include "FontRenderer.h"
 
 void LoadFbxSdkObject(const char* const filename, std::vector<std::shared_ptr<Object>>& objectStack);
 std::shared_ptr<Mesh> GeneratePlane();
@@ -68,6 +69,8 @@ namespace
 
     const glm::vec4 s_worldLight(0, 50, 0, 1);
     const int ActiveLightCount = 1;
+
+    FontRenderer fontRenderer;
 }
 
 GraphicsDemo::GraphicsDemo()
@@ -85,17 +88,20 @@ void GraphicsDemo::OnStart()
     ShaderPrograms::Init();
     
     PrepareLights();
-
+    
     // Initial m_camera location.
     m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
 
     // Load dragon form fbx file.
     LoadFbxSdkObject("./Resources/56-fbx/fbx/Dragon 2.5_fbx.fbx", m_objects);
-
     // Dragon is facing downward after loaded. I'm rotating it to make it face forward. (+Z)
     m_objects.back()->SetRotation(glm::angleAxis(glm::pi<float>()*-0.5f, glm::vec3(1, 0, 0)));
 
     AddGround();
+
+    fontRenderer.SetFont("fonts/times.ttf");
+    fontRenderer.SetScreenOrigin(.0f, .0f);
+    fontRenderer.SetScreenSize(static_cast<float>(m_clientWidth), static_cast<float>(m_clientHeight));
 }
 
 void GraphicsDemo::Update(float dt)
@@ -114,7 +120,6 @@ void GraphicsDemo::Render()
     GET_AND_HANDLE_GL_ERROR();
     glClearColor(0, 0.8f, 0.7f, 1.0f);
     GET_AND_HANDLE_GL_ERROR();
-
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
 
@@ -128,7 +133,14 @@ void GraphicsDemo::Render()
     GET_AND_HANDLE_GL_ERROR();
 
     DrawPeekViewports();
-    
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+    GET_AND_HANDLE_GL_ERROR();
+
+    glViewport(0, 0, m_clientWidth, m_clientHeight);
+    GET_AND_HANDLE_GL_ERROR();
+
+    fontRenderer.RenderText(U"Hi", 0, 100);
 }
 
 void GraphicsDemo::Free()
