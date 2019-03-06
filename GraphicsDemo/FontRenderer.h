@@ -16,6 +16,7 @@
 #include <string>
 #include <cstdint>
 #include <ostream>
+#include "ShaderPrograms.h"
 
 // ----------------
 class FontRenderer

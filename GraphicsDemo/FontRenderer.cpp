@@ -25,12 +25,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
-namespace
-{
-    GLuint MakeShader(GLenum shaderType, const char* source, int slen);
-    GLuint MakeProgram(GLuint vshader, GLuint fshader);
-}
-
 class FontRenderer::SharedData
 {
 public:
@@ -41,7 +35,7 @@ public:
         , m_screenOriginY(0)
         , m_freetype(0)
         , m_face(0)
-        , m_program(0)
+        , m_program()
         , m_vbo(0)
         , m_vao(0)
         , m_reportStream(&std::cout)
@@ -56,7 +50,7 @@ public:
     float           m_screenOriginY;
     FT_Library      m_freetype;
     FT_Face         m_face;
-    GLuint          m_program;
+    ShaderProgram   m_program;
     GLuint          m_vbo;
     GLuint          m_vao;
     std::ostream*   m_reportStream;
@@ -64,43 +58,35 @@ public:
 
 void FontRenderer::SharedData::initialize()
 {
-    //
-    // Freetype
-    //
     FT_Init_FreeType(&m_freetype);
 
-    // ----------------------
-    // Vertex Shader
+    ShaderProgram sp;
+
     const GLchar vssource[] =
         "#version 440 \n"
-        "layout(location=0) in vec3 a_position;"
-        "layout(location=1) in vec2 a_uv;"
-        "out vec2 v_uv;"
-        "uniform mat4 u_transform;"
+        "layout(location=0) in vec3 position;"
+        "layout(location=1) in vec2 uv;"
+        "out vec2 vUv;"
+        "uniform mat4 uTransform;"
         "void main()"
         "{"
-        " gl_Position = u_transform * vec4(a_position,1);"
-        " v_uv = vec2(a_uv.x, 1-a_uv.y);"
+        " gl_Position = uTransform * vec4(position,1);"
+        " vUv = vec2(uv.x, 1-uv.y);"
         "}\n"
         ;
-    auto vshader = MakeShader(GL_VERTEX_SHADER, vssource, _countof(vssource));
-    // --------------------
-    // Fragment Shader
+
     const GLchar fssource[] =
         "#version 440 \n"
-        "out vec4 v_color;"
-        "in vec2 v_uv;"
-        "uniform sampler2D u_texture;"
+        "in vec2 vUv;"
+        "out vec4 FragColor;"
+        "uniform sampler2D uTexture;"
         "void main()"
         "{"
-        "   v_color = texture(u_texture, v_uv);"
+        "   FragColor = texture(uTexture, vUv);"
         "}"
         ;
-    auto fshader = MakeShader(GL_FRAGMENT_SHADER, fssource, _countof(fssource));
 
-    // --------------------
-    // Shader Program
-    m_program = MakeProgram(vshader, fshader);
+    m_program.InitBySource("FontRenderer Shader", vssource, fssource);
 
     // --------------------
     // Vertex Buffer Object
@@ -179,7 +165,7 @@ void FontRenderer::RenderText(const std::u32string& str
     ////////////////////////////////////////
     // renderig assets from opengl
     // rendering program
-    GLuint gl_program = GetSharedData().m_program;
+    GLuint gl_program = GetSharedData().m_program.Handle();
     // rendering vertex array object
     GLuint vao = GetSharedData().m_vao;
     // glyph size measured from freetype font data
@@ -245,10 +231,10 @@ void FontRenderer::RenderText(const std::u32string& str
             * glm::scale(glm::vec3(width * font_scale / screen_width * 2
                 , height * font_scale / screen_height * 2
                 , 1));
-        auto loc = glGetUniformLocation(gl_program, "u_transform");
+        auto loc = glGetUniformLocation(gl_program, "uTransform");
         glUniformMatrix4fv(loc, 1, GL_FALSE, &transform[0][0]);
         glerror = glGetError(); if (glerror) GetReportStream() << glerror << std::endl;
-        loc = glGetUniformLocation(gl_program, "u_texture");
+        loc = glGetUniformLocation(gl_program, "uTexture");
         glerror = glGetError(); if (glerror) GetReportStream() << glerror << std::endl;
         glUniform1i(loc, 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -296,51 +282,4 @@ FontRenderer::SharedData& FontRenderer::GetSharedData()
     }
 
     return *data;
-}
-
-namespace
-{
-    GLuint MakeShader(GLenum shaderType, const char* source, int slen)
-    {
-        auto shader = glCreateShader(shaderType);
-        glShaderSource(shader, 1, (const GLchar**)&source, &slen);
-        glCompileShader(shader);
-        GLint success;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (success == GL_FALSE)
-        {
-            std::vector<GLchar> glInfoLogBuffer;
-            int len;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
-            glInfoLogBuffer.resize(len + 1);
-            GLsizei outlen;
-            glGetShaderInfoLog(shader, static_cast<GLsizei>(glInfoLogBuffer.size()), &outlen, glInfoLogBuffer.data());
-            glInfoLogBuffer.back() = 0;
-            FontRenderer::GetReportStream() << glInfoLogBuffer.data() << std::endl;
-            return 0;
-        }
-        return shader;
-    }
-
-    GLuint MakeProgram(GLuint vshader, GLuint fshader)
-    {
-        auto program = glCreateProgram();
-        glAttachShader(program, vshader);
-        glAttachShader(program, fshader);
-        glLinkProgram(program);
-        GLint success;
-        glGetProgramiv(program, GL_LINK_STATUS, &success);
-        if (success == GL_FALSE)
-        {
-            int len;
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
-            std::vector<GLchar> buffer;
-            buffer.resize(len + 1);
-            buffer.back() = 0;
-            glGetProgramInfoLog(program, static_cast<GLsizei>(buffer.size()), &len, buffer.data());
-            FontRenderer::GetReportStream() << buffer.data() << std::endl;
-            return 0;
-        }
-        return program;
-    }
 }
