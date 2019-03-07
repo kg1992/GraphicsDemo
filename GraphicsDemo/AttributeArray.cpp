@@ -3,6 +3,7 @@
 
     class AttributeArray implementation.
 */
+#include "Common.h"
 #include "AttributeArray.h"
 #include "Errors.h"
 

@@ -3,10 +3,7 @@
 
     Error Handling Code.
 */
-#include <string>
-#include <vector>
-#include <iostream>
-#include <Windows.h>
+#include "Common.h"
 #include "Errors.h"
 
 void HandleError(const std::string& message)

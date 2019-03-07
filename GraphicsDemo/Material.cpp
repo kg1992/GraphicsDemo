@@ -1,6 +1,6 @@
+#include "Common.h"
 #include "Material.h"
 #include "Errors.h"
-#include <fbxsdk.h>
 
 namespace
 {

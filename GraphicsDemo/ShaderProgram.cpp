@@ -9,12 +9,7 @@
 
     ShaderProgram class definition.
 */
-#include <string>
-#include <fstream>
-#include <vector>
-#include <iostream>
-#include <map>
-#include <glad.h>
+#include "Common.h"
 #include "ShaderProgram.h"
 #include "Errors.h"
 

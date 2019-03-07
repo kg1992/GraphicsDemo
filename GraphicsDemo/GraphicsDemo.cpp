@@ -6,16 +6,7 @@
     Todo:
         utilaize ShaderProgram to send matrix uniforms.
 */
-#include <iostream>
-#include <sstream>
-#include <glad.h>
-#define GLM_FORCE_SWIZZLE
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtx/rotate_vector.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <Windowsx.h>
-#include <WinUser.h>
+#include "Common.h"
 #include "SystemComponent.h"
 #include "GraphicsDemo.h"
 #include "Errors.h"
@@ -203,8 +194,8 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             glm::vec4 ex = invEye[0];
             glm::vec4 ey = invEye[1];
 
-            m_camera.MoveBy(ex.xyz * (float)dx);
-            m_camera.MoveBy(ey.xyz * -(float)dy);
+            m_camera.MoveBy(glm::vec3(ex) * (float)dx);
+            m_camera.MoveBy(glm::vec3(ey) * -(float)dy);
         }
 
         else if (wParam & MK_MBUTTON)

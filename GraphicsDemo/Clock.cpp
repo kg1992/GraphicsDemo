@@ -1,5 +1,5 @@
+#include "Common.h"
 #include "Clock.h"
-#include <Windows.h>
 
 namespace
 {

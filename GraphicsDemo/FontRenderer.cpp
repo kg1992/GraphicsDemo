@@ -10,20 +10,8 @@
 
     FontRenderer class implementation.
 */
+#include "Common.h"
 #include "FontRenderer.h"
-#include <memory>
-#include <algorithm>
-#include <fstream>
-#include <vector>
-#include <cstdint>
-#include <climits>
-#include <iostream>
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_GLYPH_H 
-#include <glad.h>
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
 
 class FontRenderer::SharedData
 {

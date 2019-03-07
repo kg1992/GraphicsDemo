@@ -1,8 +1,5 @@
+#include "Common.h"
 #include "Camera.h"
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
-#include <glm/gtx/quaternion.hpp>
 
 void Camera::SetPosition(const glm::vec3 & pos)
 {

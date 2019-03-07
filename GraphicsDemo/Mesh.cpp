@@ -3,6 +3,7 @@
 
     class Mesh implementation.
 */
+#include "Common.h"
 #include "Mesh.h"
 #include "Errors.h"
 

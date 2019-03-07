@@ -13,11 +13,7 @@
                       log file will be generated next to exe file
      - Initialize 'System' class and its SystemComponents.
 */
-
 #include "Common.h"
-#include <iostream>
-#include <fstream>
-#include <filesystem>
 #include "System.h"
 #include "GraphicsDemo.h"
 

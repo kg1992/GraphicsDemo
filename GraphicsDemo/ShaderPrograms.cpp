@@ -5,6 +5,7 @@
 
     ShaderPrograms class definition
 */
+#include "Common.h"
 #include "ShaderPrograms.h"
 
 void ShaderPrograms::Init()

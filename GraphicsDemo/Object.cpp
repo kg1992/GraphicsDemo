@@ -1,8 +1,5 @@
+#include "Common.h"
 #include "Object.h"
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include "Errors.h"
 #include "Mesh.h"
 #include "Material.h"

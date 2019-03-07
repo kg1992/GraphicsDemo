@@ -1,9 +1,8 @@
-#ifdef _DEBUG
+#include "Common.h"
 
-#include <iostream>
+#ifndef NDEBUG
 #include <io.h>
 #include <fcntl.h>
-#include <Windows.h>
 
 // https://stackoverflow.com/questions/3009042/how-to-view-printf-output-in-a-win32-application-on-visual-studio-2010
 void AllocateDebugConsole()
