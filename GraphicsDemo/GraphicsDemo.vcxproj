@@ -179,6 +179,7 @@
   <ItemGroup>
     <ClInclude Include="AttributeArray.h" />
     <ClInclude Include="Clock.h" />
+    <ClInclude Include="Common.h" />
     <ClInclude Include="Errors.h" />
     <ClInclude Include="FontRenderer.h" />
     <ClInclude Include="GraphicsDemo.h" />
