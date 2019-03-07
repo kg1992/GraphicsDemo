@@ -20,6 +20,16 @@ public:
 
     void AddComponent(SystemComponent* pComponent);
 
+    template< typename T>
+    void GetComponent(T*& pOut)
+    {
+        for (std::shared_ptr<SystemComponent> pComponent : m_components)
+        {
+            if (typeid(*pComponent) == typeid(T))
+                pOut = dynamic_cast<T*>(pComponent.get());
+        }
+    }
+
 private:
     HWND m_hwnd;
     HDC m_hdc;

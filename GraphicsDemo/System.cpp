@@ -251,10 +251,7 @@ LRESULT CALLBACK System::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         glViewport(0, 0, width, height);
         GET_AND_HANDLE_GL_ERROR();
     }
-
     }
-
-
     // Pass All Unhandled Messages To DefWindowProc
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
