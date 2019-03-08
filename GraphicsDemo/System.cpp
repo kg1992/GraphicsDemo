@@ -1,5 +1,5 @@
+#include "Common.h"
 #include "System.h"
-#include <iostream>
 #include "Errors.h"
 #include "SystemComponent.h"
 

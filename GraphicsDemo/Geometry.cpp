@@ -1,4 +1,4 @@
-#include <memory>
+#include "Common.h"
 #include "Mesh.h"
 
 std::shared_ptr<Mesh> GenerateCube()

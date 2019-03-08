@@ -16,13 +16,9 @@
     Changes:
         190303 - Removed dependency on glm
 */
+#include "Common.h"
 #include "SystemComponent.h"
 #include "Errors.h"
-#include <iostream>
-#include <fstream>
-#include <glad.h>
-#include <fbxsdk.h>
-#include <map>
 #include "Object.h"
 #include "Camera.h"
 #include "Material.h"
