@@ -1,6 +1,6 @@
 set PLATFORM_TARGET=%1
 set CONFIGURATION=Release
-set VERSION=0.0.1
+set VERSION=0.0.2
 rem https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/call#batch-parameters
 set SNAPSHOT_LOCATION="..\Snapshot\%VERSION%\"
 set SHADERS=*.glsl

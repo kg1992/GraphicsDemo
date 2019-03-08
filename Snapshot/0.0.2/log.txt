@@ -1,0 +1,5 @@
+hInst : 
+ARGS : 
+nCmdShow : 1
+OpenGL version : 4.3.0 - Build 20.19.15.4416
+Register OpenGL debug callback 
