@@ -60,11 +60,14 @@ namespace
     const int VK_Y = 0x59;
     const int VK_Z = 0x5A;
 
-    const glm::vec4 s_worldLight(0, 50, 0, 1);
     const int ActiveLightCount = 1;
     const int MaximumLightCount = 5;
-
-    FontRenderer fontRenderer;
+    FontRenderer s_fontRenderer;
+    SpotLight s_spotLight;
+    float s_spotSpeed = 4.0f;
+    float s_speedX = -1.0;
+    float s_speedZ = 1.1618f;
+    float s_spotAngle = 0.0f;
 }
 
 GraphicsDemo::GraphicsDemo()
@@ -93,9 +96,9 @@ void GraphicsDemo::OnStart()
 
     AddGround();
 
-    fontRenderer.SetFont("fonts/times.ttf");
-    fontRenderer.SetScreenOrigin(.0f, .0f);
-    fontRenderer.SetScreenSize(static_cast<float>(m_clientWidth), static_cast<float>(m_clientHeight));
+    s_fontRenderer.SetFont("fonts/times.ttf");
+    s_fontRenderer.SetScreenOrigin(.0f, .0f);
+    s_fontRenderer.SetScreenSize(static_cast<float>(m_clientWidth), static_cast<float>(m_clientHeight));
 }
 
 void GraphicsDemo::Update(float dt)
@@ -106,6 +109,20 @@ void GraphicsDemo::Update(float dt)
     float y = (sinf(time) + 1) * radius;
     float z = 0;// sinf(time) * radius;
     m_pointLights[0].position = glm::vec4(x, y, z, 1.0f);
+
+    //////////
+    
+    
+    glm::vec3 d = s_spotLight.GetDirection();
+    glm::vec3 longitudialTangent = glm::cross(d, glm::vec3(0, 1, 0));
+    glm::vec3 latittudialTangent = glm::cross(d, longitudialTangent);
+    const float SecPerFrame = 0.016f;
+    const float g = 9.8f;
+    s_speedX += g * -d.x* SecPerFrame;
+    d.x += s_speedX * SecPerFrame;
+    s_speedZ += g * -d.z * SecPerFrame;
+    d.z += s_speedZ * SecPerFrame;
+    s_spotLight.SetDirection(glm::normalize(d));
 }
 
 void GraphicsDemo::Render()
@@ -123,7 +140,7 @@ void GraphicsDemo::Render()
 
     DrawScene();
 
-    fontRenderer.RenderText(U"Hi", 0, 100);
+    s_fontRenderer.RenderText(U"Hi", 0, 100);
 
     glClear(GL_DEPTH_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
@@ -276,10 +293,11 @@ void GraphicsDemo::AddGround()
 
 void GraphicsDemo::DrawPointLights()
 {
+    auto& program = ShaderPrograms::s_pointLight;
+
     for( int i = 0; i < ActiveLightCount; ++i )
     {
         PointLight& pointLight = m_pointLights[i];
-        auto& program = ShaderPrograms::s_pointLight;
 
         program.Use();
         program.SendUniform("wCenterPos", glm::vec4(pointLight.position, 1));
@@ -290,6 +308,19 @@ void GraphicsDemo::DrawPointLights()
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         GET_AND_HANDLE_GL_ERROR();
     }
+
+    
+
+    program.Use();
+    program.SendUniform("wCenterPos", glm::vec4(s_spotLight.GetPosition(), 1));
+    program.SendUniform("wScale", 5.0f, 5.0f);
+    program.SendUniform("wvMatrix", 1, false, m_camera.EyeMatrix());
+    program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
+
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    GET_AND_HANDLE_GL_ERROR();
+
+    
 }
 
 void GraphicsDemo::DrawScene()
@@ -362,48 +393,46 @@ void GraphicsDemo::PrepareLights()
     m_pointLights[0].ls = glm::vec3(1.0f, 1.0f, 1.0f);
 
     m_pointLights.push_back(pl);
+
+    //////////
+    s_spotLight.SetPosition(glm::vec3(.0f, 100.0f, .0f));
+    s_spotLight.SetDirection(glm::normalize(glm::vec3(0.0f, -1.0f, -0.3f)));
+    s_spotLight.SetDiffuse(glm::vec3(1.0f, 1.0f, 1.0f));
+    s_spotLight.SetAmbientColor(glm::vec3(.0f, .0f, .0f));
+    s_spotLight.SetCutoff(glm::radians(50.f));
+    s_spotLight.SetExponent(50.0f);
 }
 
 void GraphicsDemo::SendPointLight(ShaderProgram& program, int index, PointLight& light)
 {
     std::stringstream ss;
 
-    const bool useFullSetting = false;
+    ss << "light[" << index << "].position";
+    program.SendUniform(ss.str().c_str(), m_camera.EyeMatrix() * glm::vec4(light.position, 1));
+    std::stringstream().swap(ss);
 
-    if (useFullSetting)
-    {
-        ss << "light[" << index << "].position";
-        program.SendUniform(ss.str().c_str(), m_camera.EyeMatrix() * glm::vec4(light.position, 1));
-        std::stringstream().swap(ss);
+    ss << "light[" << index << "].la";
+    program.SendUniform(ss.str().c_str(), light.la);
+    std::stringstream().swap(ss);
 
-        ss << "light[" << index << "].la";
-        program.SendUniform(ss.str().c_str(), light.la);
-        std::stringstream().swap(ss);
+    ss << "light[" << index << "].l";
+    program.SendUniform(ss.str().c_str(), light.ld);
+    std::stringstream().swap(ss);
+}
 
-        ss << "light[" << index << "].ld";
-        program.SendUniform(ss.str().c_str(), light.ld);
-        std::stringstream().swap(ss);
-
-        ss << "light[" << index << "].ls";
-        program.SendUniform(ss.str().c_str(), light.ls);
-        std::stringstream().swap(ss);
-    }
-    else
-    {
-        std::stringstream ss;
-
-        ss << "light[" << index << "].position";
-        program.SendUniform(ss.str().c_str(), m_camera.EyeMatrix() * glm::vec4(light.position, 1));
-        std::stringstream().swap(ss);
-
-        ss << "light[" << index << "].la";
-        program.SendUniform(ss.str().c_str(), light.la);
-        std::stringstream().swap(ss);
-
-        ss << "light[" << index << "].l";
-        program.SendUniform(ss.str().c_str(), light.ld);
-        std::stringstream().swap(ss);
-    }
+void GraphicsDemo::SendSpotLight(ShaderProgram& program, SpotLight& spotLight)
+{ 
+    glm::mat4 viewMatrix = m_camera.EyeMatrix();
+    glm::vec3 position = viewMatrix * glm::vec4(spotLight.GetPosition(), 1);
+    program.SendUniform("spot.position", position);
+    program.SendUniform("spot.l", spotLight.GetDiffuse());
+    program.SendUniform("spot.la", spotLight.GetAmbient());
+    
+    glm::mat3 normalMatrix = glm::mat3(glm::vec3(viewMatrix[0]), glm::vec3(viewMatrix[1]), glm::vec3(viewMatrix[2]));
+    glm::vec3 direction = normalMatrix * spotLight.GetDirection();
+    program.SendUniform("spot.direction", direction);
+    program.SendUniform("spot.exponent", spotLight.GetExponent());
+    program.SendUniform("spot.cutoff", spotLight.GetCutoff());
 }
 
 void GraphicsDemo::SendLights(ShaderProgram& program, int count)
@@ -412,6 +441,8 @@ void GraphicsDemo::SendLights(ShaderProgram& program, int count)
     {
         SendPointLight(program, i, m_pointLights[i]);
     }
+
+    SendSpotLight(program, s_spotLight);
 }
 
 void GraphicsDemo::SendMatrices(ShaderProgram & program, Object& object)

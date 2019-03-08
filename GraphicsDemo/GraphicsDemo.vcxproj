@@ -219,6 +219,7 @@
     <ClCompile Include="FontRenderer.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GraphicsDemo.cpp" />
+    <ClCompile Include="Lights.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />

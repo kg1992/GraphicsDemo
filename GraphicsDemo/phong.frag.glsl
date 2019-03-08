@@ -12,7 +12,7 @@ in vec2 vUv;
 in vec3 vEyePosition;
 in vec3 vNormal;
 
-out vec4 FragColor;
+layout( location = 0 ) out vec4 FragColor;
 
 const int LightCount = 1;
 
@@ -22,6 +22,15 @@ uniform struct LightInfo
 	vec3 la;
 	vec3 l;
 } light[LightCount];
+
+uniform struct SpotLightInfo {
+    vec3 position;  // Position in cam coords
+    vec3 l;         // Diffuse/spec intensity
+    vec3 la;        // Amb intensity
+    vec3 direction; // Direction of the spotlight in cam coords.
+    float exponent; // Angular attenuation exponent
+    float cutoff;   // Cutoff angle (between 0 and pi/2)
+} spot;
 
 uniform struct MaterialInfo
 {
@@ -36,14 +45,17 @@ uniform struct MaterialInfo
 
 vec3 phongModel( int lightIndex, vec3 position, vec3 n );
 vec3 blinnPhongModel( int lightIndex, vec3 position, vec3 n );
+vec3 blinnPhongModelSpot( vec3 position, vec3 n );
 
 void main(void)
 {
 	vec3 color;
+	vec3 vNormalizedNormal = vNormal;
 	for( int i = 0; i < LightCount; ++i )
 	{
-		color += blinnPhongModel(i, vEyePosition, normalize(vNormal));
+		color += blinnPhongModel(i, vEyePosition, vNormalizedNormal);
 	}
+	color += blinnPhongModelSpot(vEyePosition, vNormalizedNormal);
 	FragColor = vec4(color,1);
 }
 
@@ -124,4 +136,33 @@ vec3 blinnPhongModel( int lightIndex, vec3 position, vec3 n )
 
 	//return ambient + (diffuse) * light[lightIndex].l;
 	return ambient + (diffuse + spec) * light[lightIndex].l;
+}
+
+vec3 blinnPhongModelSpot( vec3 position, vec3 n )
+{
+	vec3 ambient = spot.la * material.ka, diffuse = vec3(0), spec = vec3(0);
+	
+	vec3 s = normalize( spot.position - position );
+
+	float cosAng = dot( -s, normalize(spot.direction) );
+
+	float angle = acos( cosAng );
+
+	float spotScale = 0.0;
+
+	if( angle < spot.cutoff )
+	{
+		spotScale = pow( cosAng, spot.exponent );
+		float sDotN = max( dot(s, n), 0.0 );
+		diffuse = material.kd * sDotN;
+		if( sDotN > 0.0 )
+		{
+			vec3 v = normalize(-position.xyz);
+			vec3 h = normalize( v + s );
+			spec = material.ks * pow ( max ( dot(h,n), 0.0 ), material.shininess );
+		}
+		
+	}
+
+	return ambient + spotScale * spot.l * (diffuse + spec);
 }

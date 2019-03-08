@@ -91,6 +91,7 @@ public:
 
     GLfloat GetShininess() { return m_shininess; }
 
+    // Usually, artists use value between 0 <= shininess <= 200
     void SetShininess(GLfloat shininess) { m_shininess = shininess; }
 
     // Bake material properties.

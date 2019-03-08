@@ -45,6 +45,7 @@ private:
     void DrawObjectCenter();
     void PrepareLights();
     void SendPointLight(ShaderProgram& program, int index, PointLight& light);
+    void SendSpotLight(ShaderProgram& program, SpotLight& light);
     void SendLights(ShaderProgram& program, int count);
     void SendMatrices(ShaderProgram& program, Object& object);
 };
