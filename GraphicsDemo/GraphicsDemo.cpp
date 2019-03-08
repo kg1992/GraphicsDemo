@@ -1,13 +1,14 @@
 /*
     GraphicsDemo.cpp
 
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
     class GraphicsDemo implementation.
 
     Todo:
         utilaize ShaderProgram to send matrix uniforms.
 */
 #include "Common.h"
-#include "SystemComponent.h"
 #include "GraphicsDemo.h"
 #include "Errors.h"
 #include "System.h"
@@ -15,6 +16,7 @@
 #include "stb_image.h"
 #include "ShaderPrograms.h"
 #include "FontRenderer.h"
+#include "Material.h"
 
 void LoadFbxSdkObject(const char* const filename, std::vector<std::shared_ptr<Object>>& objectStack);
 std::shared_ptr<Mesh> GeneratePlane();
@@ -60,6 +62,7 @@ namespace
 
     const glm::vec4 s_worldLight(0, 50, 0, 1);
     const int ActiveLightCount = 1;
+    const int MaximumLightCount = 5;
 
     FontRenderer fontRenderer;
 }
@@ -120,18 +123,12 @@ void GraphicsDemo::Render()
 
     DrawScene();
 
+    fontRenderer.RenderText(U"Hi", 0, 100);
+
     glClear(GL_DEPTH_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
 
     DrawPeekViewports();
-
-    glClear(GL_DEPTH_BUFFER_BIT);
-    GET_AND_HANDLE_GL_ERROR();
-
-    glViewport(0, 0, m_clientWidth, m_clientHeight);
-    GET_AND_HANDLE_GL_ERROR();
-
-    fontRenderer.RenderText(U"Hi", 0, 100);
 }
 
 void GraphicsDemo::Free()
@@ -248,23 +245,33 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 void GraphicsDemo::RenderObject(ShaderProgram& program, Object& object)
 {
     program.Use();
-    GET_AND_HANDLE_GL_ERROR();
-
-    SendMaterial(program);
 
     SendMatrices(program, object);
 
-    object.Render();
+    object.Render(program);
 }
 
 void GraphicsDemo::AddGround()
 {
-    // Ground object setup
+    // Ground object
     std::shared_ptr<Object> pGround(new Object);
+
+    // Ground mesh
     pGround->SetMesh(GeneratePlane());
+
     // Scale to cover large area
     pGround->SetScale(glm::vec3(100, 1, 100));
     m_objects.push_back(pGround);
+
+    // Material
+    std::shared_ptr<Material> pMaterial(new Material());
+    pMaterial->SetAmbientColor(1.0f, 1.0f, 1.0f, 1.0f);
+    pMaterial->SetDiffuseColor(0.4f, 0.26f, 0.13f, 1.0f);
+    // pMaterial->SetSpecularColor(0.8f, 0.8f, 0.8f, 1.0f);
+    pMaterial->SetSpecularColor(0, 0, 1.0f, 1.0f);
+    pMaterial->SetShininess(50.0f);
+
+    pGround->AddMaterial(pMaterial);
 }
 
 void GraphicsDemo::DrawPointLights()
@@ -275,10 +282,8 @@ void GraphicsDemo::DrawPointLights()
         auto& program = ShaderPrograms::s_pointLight;
 
         program.Use();
-
         program.SendUniform("wCenterPos", glm::vec4(pointLight.position, 1));
         program.SendUniform("wScale", 5.0f, 5.0f);
-
         program.SendUniform("wvMatrix", 1, false, m_camera.EyeMatrix());
         program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
 
@@ -308,7 +313,7 @@ void GraphicsDemo::DrawPeekViewports()
     ShaderProgram programs[] = { ShaderPrograms::s_position,
                                  ShaderPrograms::s_uv,
                                  ShaderPrograms::s_normal };
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < _countof(programs); ++i)
     {
         glViewport(peekViewWidth * i, 0, peekViewWidth, peekViewHeight);
         GET_AND_HANDLE_GL_ERROR();
@@ -340,9 +345,9 @@ void GraphicsDemo::DrawObjectCenter()
 
 void GraphicsDemo::PrepareLights()
 {
-    m_pointLights.resize(5);
+    m_pointLights.resize(MaximumLightCount);
 
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < MaximumLightCount; ++i)
     {
         std::stringstream name;
         name << "light[" << i << "].Position";
@@ -352,23 +357,9 @@ void GraphicsDemo::PrepareLights()
     }
     PointLight pl;
 
-    m_pointLights[0].la = glm::vec3(0.0f, 0.2f, 0.2f);
-    m_pointLights[1].la = glm::vec3(0.0f, 0.0f, 0.2f);
-    m_pointLights[2].la = glm::vec3(0.2f, 0.0f, 0.0f);
-    m_pointLights[3].la = glm::vec3(0.0f, 0.2f, 0.0f);
-    m_pointLights[4].la = glm::vec3(0.2f, 0.2f, 0.2f);
-
-    m_pointLights[0].ld = glm::vec3(0.0f, 0.8f, 0.8f);
-    m_pointLights[1].ld = glm::vec3(0.0f, 0.0f, 0.8f);
-    m_pointLights[2].ld = glm::vec3(0.8f, 0.0f, 0.0f);
-    m_pointLights[3].ld = glm::vec3(0.0f, 0.8f, 0.0f);
-    m_pointLights[4].ld = glm::vec3(0.8f, 0.8f, 0.8f);
-
-    m_pointLights[0].ls = glm::vec3(0.0f, 0.8f, 0.8f);
-    m_pointLights[1].ls = glm::vec3(0.0f, 0.0f, 0.8f);
-    m_pointLights[2].ls = glm::vec3(0.8f, 0.0f, 0.0f);
-    m_pointLights[3].ls = glm::vec3(0.0f, 0.8f, 0.0f);
-    m_pointLights[4].ls = glm::vec3(0.8f, 0.8f, 0.8f);
+    m_pointLights[0].la = glm::vec3(0.1f, 0.1f, 0.1f);
+    m_pointLights[0].ld = glm::vec3(0.8f, 0.8f, 0.8f);
+    m_pointLights[0].ls = glm::vec3(1.0f, 1.0f, 1.0f);
 
     m_pointLights.push_back(pl);
 }
@@ -421,14 +412,6 @@ void GraphicsDemo::SendLights(ShaderProgram& program, int count)
     {
         SendPointLight(program, i, m_pointLights[i]);
     }
-}
-
-void GraphicsDemo::SendMaterial(ShaderProgram& program)
-{
-    program.SendUniform("material.ka", 0.2f, 0.2f, 0.2f);
-    program.SendUniform("material.kd", 0.4f, 0.4f, 0.4f);
-    program.SendUniform("material.ks", 0.9f, 0.9f, 0.9f);
-    program.SendUniform("material.shininess", 80.0f);
 }
 
 void GraphicsDemo::SendMatrices(ShaderProgram & program, Object& object)

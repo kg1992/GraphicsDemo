@@ -1,8 +1,36 @@
+/*
+    Object.cpp
+
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
+    Object class implementation
+
+    Todo:
+        Use VAO
+*/
 #include "Common.h"
 #include "Object.h"
 #include "Errors.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "ShaderProgram.h"
+
+namespace
+{
+    void SendMaterial(ShaderProgram& program, Material& material)
+    {
+        if (material.GetAmbientMap() != 0)
+            program.TrySendUniform("material.ambientMap", (int)material.GetAmbientMap());
+        program.TrySendUniform("material.ka", material.GetAmbientColor()[0], material.GetAmbientColor()[1], material.GetAmbientColor()[2]);
+        if (material.GetDiffuseMap() != 0)
+            program.TrySendUniform("material.diffuseMap", (int)material.GetDiffuseMap());
+        program.TrySendUniform("material.kd", material.GetDiffuseColor()[0], material.GetDiffuseColor()[1], material.GetDiffuseColor()[2]);
+        if (material.GetSpecularMap() != 0)
+            program.TrySendUniform("material.specularMap", (int)material.GetSpecularMap());
+        program.TrySendUniform("material.ks", material.GetSpecularColor()[0], material.GetSpecularColor()[1], material.GetSpecularColor()[2]);
+        program.TrySendUniform("material.shininess", material.GetShininess());
+    }
+}
 
 Object::Object()
     : m_position()
@@ -93,7 +121,7 @@ void Object::Free()
     }
 }
 
-void Object::Render()
+void Object::Render(ShaderProgram& program)
 {
     m_mesh->Apply();
 
@@ -101,12 +129,23 @@ void Object::Render()
     {
         for (int i = 0; i < m_mesh->GetSubMeshCount(); ++i)
         {
-            m_materials[i]->Apply();
+            SendMaterial(program, *m_materials[i]);
             Mesh::SubMesh subMesh = m_mesh->GetSubMesh(i);
             glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
+            GET_AND_HANDLE_GL_ERROR();
         }
     }
-    else {
+    else
+    {
+        if (m_materials.size() == 0)
+        {
+            SendMaterial(program, Material::GetDefaultMaterial());
+        }
+        else
+        {
+            SendMaterial(program, *m_materials[0]);
+        }
         glDrawArrays(GL_TRIANGLES, 0, m_mesh->GetAttributeArray(0).GetAttributeCount());
+        GET_AND_HANDLE_GL_ERROR();
     }
 }

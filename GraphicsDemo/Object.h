@@ -1,13 +1,16 @@
+/*
+    Object.h
+
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
+    Object class definition.
+*/
 #ifndef OBJECT_H_
 #define OBJECT_H_
 
-#include <vector>
-#include <glad.h>
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-
 class Mesh;
 class Material;
+class ShaderProgram;
 
 class Object
 {
@@ -53,8 +56,7 @@ public:
 
     void Free();
 
-    void Render();
-
+    void Render(ShaderProgram& program);
 
 private:
     glm::vec3 m_position;

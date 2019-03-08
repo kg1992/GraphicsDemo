@@ -1,8 +1,13 @@
+/*
+    GraphicsDemo.h
+
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
+    GraphicsDemo class definition.
+*/
 #ifndef GRAPHCIS_DEMO_H_
 #define GRAPHCIS_DEMO_H_
 
-#include <glad.h>
-#include <vector>
 #include "SystemComponent.h"
 #include "Lights.h"
 #include "Camera.h"
@@ -41,7 +46,6 @@ private:
     void PrepareLights();
     void SendPointLight(ShaderProgram& program, int index, PointLight& light);
     void SendLights(ShaderProgram& program, int count);
-    void SendMaterial(ShaderProgram& program);
     void SendMatrices(ShaderProgram& program, Object& object);
 };
 

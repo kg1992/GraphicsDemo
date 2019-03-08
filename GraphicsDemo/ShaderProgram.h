@@ -12,10 +12,6 @@
 #ifndef SHADER_PROGRAM_H_
 #define SHADER_PROGRAM_H_
 
-#include <string>
-#include <glad.h>
-#include <glm/glm.hpp>
-
 class ShaderProgram
 {
 public:
@@ -37,31 +33,30 @@ public:
     void Use();
 
     void SendUniform(const char* name, float x);
-
+    bool TrySendUniform(const char* name, float x);
     void SendUniform(const char* name, float x, float y);
-
+    bool TrySendUniform(const char* name, float x, float y);
     void SendUniform(const char* name, float x, float y, float z);
-
+    bool TrySendUniform(const char* name, float x, float y, float z);
     void SendUniform(const char* name, float x, float y, float z, float w);
-
+    bool TrySendUniform(const char* name, float x, float y, float z, float w);
     void SendUniform3fv(const char* name, int count, float* fv);
-
+    bool TrySendUniform3fv(const char* name, int count, float* fv);
     void SendUniform4fv(const char* name, int count, float *fv);
-
+    bool TrySendUniform4fv(const char* name, int count, float *fv);
     void SendUniform(const char* name, int i);
-
+    bool TrySendUniform(const char* name, int i);
+    void SendUniform(const char* name, unsigned int ui);
+    bool TrySendUniform(const char* name, unsigned int ui);
     void SendUniform(const char* name, const glm::vec3& v);
-
+    bool TrySendUniform(const char* name, const glm::vec3& v);
     void SendUniform(const char* name, const glm::vec4& v);
-
+    bool TrySendUniform(const char* name, const glm::vec4& v);
     void SendUniformSubroutine(GLenum shaderType, const char* name);
-
+    bool TrySendUniformSubroutine(GLenum shaderType, const char* name);
     void SendUniform(const char* name, int count, bool transpose, const glm::mat3& m);
-
-    void SendUniform(const char* name, int count, bool transpose, const glm::mat4& m);
-
     bool TrySendUniform(const char* name, int count, bool transpose, const glm::mat3& m);
-
+    void SendUniform(const char* name, int count, bool transpose, const glm::mat4& m);
     bool TrySendUniform(const char* name, int count, bool transpose, const glm::mat4& m);
 
     void GetProgramiv(GLenum pname, GLint& parameter);

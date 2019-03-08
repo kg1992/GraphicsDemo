@@ -18,7 +18,6 @@
 #   define GD_USE_CONSOLE
 #endif
 
-// ref : 
 #ifdef _UNICODE
 #   define GD_TSTRING std::wstring
 #elif _MBCS

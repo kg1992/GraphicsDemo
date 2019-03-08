@@ -1,5 +1,5 @@
 /*
-    ShaderProgram.h
+    ShaderProgram.cpp
 
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
@@ -168,11 +168,33 @@ void ShaderProgram::SendUniform(const char* name, float x)
     GET_AND_HANDLE_GL_ERROR();
 }
 
+bool ShaderProgram::TrySendUniform(const char * name, float x)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform1f(location, x);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
 void ShaderProgram::SendUniform(const char* name, float x, float y)
 {
     GLint location = GetUniformLocation(name);
     glUniform2f(location, x, y);
     GET_AND_HANDLE_GL_ERROR();
+}
+
+bool ShaderProgram::TrySendUniform(const char * name, float x, float y)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform2f(location, x, y);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
 }
 
 void ShaderProgram::SendUniform(const char* name, float x, float y, float z)
@@ -182,11 +204,33 @@ void ShaderProgram::SendUniform(const char* name, float x, float y, float z)
     GET_AND_HANDLE_GL_ERROR();
 }
 
+bool ShaderProgram::TrySendUniform(const char * name, float x, float y, float z)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform3f(location, x, y, z);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
 void ShaderProgram::SendUniform(const char* name, float x, float y, float z, float w)
 {
     GLint location = GetUniformLocation(name);
     glUniform4f(location, x, y, z, w);
     GET_AND_HANDLE_GL_ERROR();
+}
+
+bool ShaderProgram::TrySendUniform(const char * name, float x, float y, float z, float w)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform4f(location, x, y, z, w);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
 }
 
 void ShaderProgram::SendUniform3fv(const char* name, int count, float* fv)
@@ -196,11 +240,33 @@ void ShaderProgram::SendUniform3fv(const char* name, int count, float* fv)
     GET_AND_HANDLE_GL_ERROR();
 }
 
+bool ShaderProgram::TrySendUniform3fv(const char * name, int count, float * fv)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform3fv(location, count, fv);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
 void ShaderProgram::SendUniform4fv(const char* name, int count, float *fv)
 {
     GLint location = GetUniformLocation(name);
     glUniform4fv(location, count, fv);
     GET_AND_HANDLE_GL_ERROR();
+}
+
+bool ShaderProgram::TrySendUniform4fv(const char * name, int count, float * fv)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform4fv(location, count, fv);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
 }
 
 void ShaderProgram::SendUniform(const char* name, int i)
@@ -210,14 +276,53 @@ void ShaderProgram::SendUniform(const char* name, int i)
     GET_AND_HANDLE_GL_ERROR();
 }
 
+bool ShaderProgram::TrySendUniform(const char * name, int i)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform1i(location, i);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
+void ShaderProgram::SendUniform(const char* name, unsigned int ui)
+{
+    GLint location = GetUniformLocation(name);
+    glUniform1ui(location, ui);
+    GET_AND_HANDLE_GL_ERROR();
+}
+
+bool ShaderProgram::TrySendUniform(const char * name, unsigned int ui)
+{
+    GLint location = glGetUniformLocation(m_program, name);
+    if (location == -1)
+        return false;
+    glUniform1ui(location, ui);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
 void ShaderProgram::SendUniform(const char* name, const glm::vec3& v)
 {
     SendUniform(name, v.x, v.y, v.z);
 }
 
+bool ShaderProgram::TrySendUniform(const char * name, const glm::vec3 & v)
+{
+    return TrySendUniform(name, v.x, v.y, v.z);
+}
+
 void ShaderProgram::SendUniform(const char* name, const glm::vec4& v)
 {
     SendUniform(name, v.x, v.y, v.z, v.w);
+}
+
+bool ShaderProgram::TrySendUniform(const char * name, const glm::vec4 & v)
+{
+    return TrySendUniform(name, v.x, v.y, v.z, v.w);
 }
 
 void ShaderProgram::SendUniformSubroutine(GLenum shaderType, const char* name)
@@ -228,15 +333,22 @@ void ShaderProgram::SendUniformSubroutine(GLenum shaderType, const char* name)
     GET_AND_HANDLE_GL_ERROR();
 }
 
+bool ShaderProgram::TrySendUniformSubroutine(GLenum shaderType, const char * name)
+{
+    GLuint adsIndex = glGetSubroutineIndex(m_program, shaderType, name);
+    // Todo : check if this is correct answer
+    if (adsIndex == -1)
+        return false;
+    GLint location = glGetUniformLocation(m_program, name);
+    glUniformSubroutinesuiv(m_program, location, &adsIndex);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    return true;
+}
+
 void ShaderProgram::SendUniform(const char* name, int count, bool transpose, const glm::mat3& m)
 {
     glUniformMatrix3fv(GetUniformLocation(name), count, transpose, &m[0][0]);
-    GET_AND_HANDLE_GL_ERROR();
-}
-
-void ShaderProgram::SendUniform(const char* name, int count, bool transpose, const glm::mat4& m)
-{
-    glUniformMatrix4fv(GetUniformLocation(name), count, transpose, &m[0][0]);
     GET_AND_HANDLE_GL_ERROR();
 }
 
@@ -249,6 +361,12 @@ bool ShaderProgram::TrySendUniform(const char* name, int count, bool transpose, 
     if (glGetError() != GL_NO_ERROR)
         return false;
     return true;
+}
+
+void ShaderProgram::SendUniform(const char* name, int count, bool transpose, const glm::mat4& m)
+{
+    glUniformMatrix4fv(GetUniformLocation(name), count, transpose, &m[0][0]);
+    GET_AND_HANDLE_GL_ERROR();
 }
 
 bool ShaderProgram::TrySendUniform(const char* name, int count, bool transpose, const glm::mat4& m)
