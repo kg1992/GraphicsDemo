@@ -13,9 +13,6 @@
 #ifndef FONT_RENDERER_H_
 #define FONT_RENDERER_H_
 
-#include <string>
-#include <cstdint>
-#include <ostream>
 #include "ShaderPrograms.h"
 
 // ----------------

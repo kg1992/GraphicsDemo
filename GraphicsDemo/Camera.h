@@ -1,9 +1,6 @@
 #ifndef PERSPECTIVE_CAMERA_H_
 #define PERSPECTIVE_CAMERA_H_
 
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-
 class Camera
 {
 public:

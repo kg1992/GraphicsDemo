@@ -8,8 +8,6 @@
 #ifndef LIGHTS_H_
 #define LIGHTS_H_
 
-#include <glm/glm.hpp>
-
 class PointLight
 {
 public:

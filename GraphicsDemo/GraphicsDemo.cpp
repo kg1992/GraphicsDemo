@@ -4,9 +4,6 @@
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
     class GraphicsDemo implementation.
-
-    Todo:
-        utilaize ShaderProgram to send matrix uniforms.
 */
 #include "Common.h"
 #include "GraphicsDemo.h"

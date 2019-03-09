@@ -1,8 +1,6 @@
 #ifndef SYSTEM_COMPONENT_H_
 #define SYSTEM_COMPONENT_H_
 
-#include <Windows.h>
-
 class SystemComponent
 {
 public:

@@ -87,8 +87,6 @@ public:
         m_specular.color[3] = a;
     }
 
-
-
     GLfloat GetShininess() { return m_shininess; }
 
     // Usually, artists use value between 0 <= shininess <= 200

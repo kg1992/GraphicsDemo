@@ -14,9 +14,6 @@
 #ifndef MESH_H_
 #define MESH_H_
 
-#include <glad.h>
-#include <fbxsdk.h>
-#include <vector>
 #include "AttributeArray.h"
 
 class Mesh
