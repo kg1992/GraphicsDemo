@@ -40,7 +40,10 @@ AttributeArray::AttributeArray(int size, GLenum type, int stride, const void* of
 void AttributeArray::Fill(GLsizeiptr size, void * data)
 {
     if (m_bo == 0)
+    {
         glGenBuffers(1, &m_bo);
+        GET_AND_HANDLE_GL_ERROR();
+    }
 
     glBindBuffer(GL_ARRAY_BUFFER, m_bo);
     GET_AND_HANDLE_GL_ERROR();
@@ -53,9 +56,21 @@ void AttributeArray::Fill(GLsizeiptr size, void * data)
 
 void AttributeArray::VertexAttribPointer(int index, GLboolean normalized)
 {
+    
     glBindBuffer(GL_ARRAY_BUFFER, m_bo);
-    glVertexAttribPointer(index, m_size, m_type, normalized, m_stride, reinterpret_cast<const void*>(m_offset));
+    GET_AND_HANDLE_GL_ERROR();
+    if (m_type == GL_INT || m_type == GL_SHORT || m_type == GL_BYTE
+      || m_type == GL_UNSIGNED_INT || m_type == GL_UNSIGNED_SHORT || m_type == GL_UNSIGNED_BYTE)
+    {
+        glVertexAttribIPointer(index, m_size, m_type, m_stride, reinterpret_cast<const void*>(m_offset));
+    }
+    else
+    {
+        glVertexAttribPointer(index, m_size, m_type, normalized, m_stride, reinterpret_cast<const void*>(m_offset));
+    }
+    GET_AND_HANDLE_GL_ERROR();
     glEnableVertexAttribArray(index);
+    GET_AND_HANDLE_GL_ERROR();
 }
 
 void AttributeArray::Free()

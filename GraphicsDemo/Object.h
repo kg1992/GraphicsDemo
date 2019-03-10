@@ -8,6 +8,9 @@
 #ifndef OBJECT_H_
 #define OBJECT_H_
 
+#include "Skeleton.h"
+#include "Animator.h"
+
 class Mesh;
 class Material;
 class ShaderProgram;
@@ -35,28 +38,36 @@ public:
 
     void UpdateTransformMatrix();
 
+    void Update();
+
     const glm::mat4x4& GetTransformMatrix();
 
     void AddMaterial(std::shared_ptr<Material> ptr);
-
-    std::shared_ptr<Mesh> GetMesh()
-    {
-        return m_mesh;
-    }
-
-    void SetMesh(std::shared_ptr<Mesh> mesh)
-    {
-        m_mesh = mesh;
-    }
 
     std::shared_ptr<Material> GetMaterial(int index)
     {
         return m_materials[index];
     }
 
+    void AddMesh(std::shared_ptr<Mesh> mesh)
+    {
+        m_meshes.push_back(mesh);
+    }
+
+    std::shared_ptr<Mesh> GetMesh(int index)
+    {
+        return m_meshes[index];
+    }
+
     void Free();
 
     void Render(ShaderProgram& program);
+
+    std::shared_ptr<Skeleton> GetSkeleton();
+
+    void SetSkeleton(std::shared_ptr<Skeleton> pSkeleton);    
+    
+    void SetAnimator(std::shared_ptr<Animator> pAnimator);
 
 private:
     glm::vec3 m_position;
@@ -64,8 +75,10 @@ private:
     glm::quat m_rotation;
     glm::mat4x4 m_mvMatrix;
 
-    std::shared_ptr<Mesh> m_mesh;
+    std::vector<std::shared_ptr<Mesh>> m_meshes;
     std::vector<std::shared_ptr<Material>> m_materials;
+    std::shared_ptr<Skeleton> m_pSkeleton;
+    std::shared_ptr<Animator> m_pAnimator;
 };
 
 #endif

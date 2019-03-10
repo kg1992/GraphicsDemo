@@ -11,6 +11,14 @@
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec2 uv;
 layout (location = 2) in vec3 normal;
+layout (location = 3) in ivec3 bones;
+layout (location = 4) in vec3 weights;
+
+const int MaximumWeights = 3;
+const int MaximumBoneCount = 128;
+
+uniform mat4 jointTransforms[MaximumBoneCount];
+
 
 out vec2 vUv;
 out vec3 vEyePosition;
@@ -23,8 +31,21 @@ uniform mat4 projMatrix;
 
 void main(void)
 {
-	vEyePosition = vec3(mvMatrix * position);
-	vNormal = normalize(normalMatrix * normal);
-	vUv = uv;	
-	gl_Position = projMatrix * mvMatrix * position;
+	vec4 totalLocalPos = vec4(0.0);
+	vec4 totalNormal = vec4(0.0);
+
+	for( int i = 0; i < MaximumWeights; ++i )
+	{
+		mat4 jointTransform = jointTransforms[bones[i]];
+		vec4 posePosition = jointTransform * position;
+		totalLocalPos += posePosition * weights[i];
+		
+		vec4 worldNormal = jointTransform * vec4(normal, 0.0);
+		totalNormal += worldNormal * weights[i];
+	}
+	
+	vEyePosition = vec3(mvMatrix * totalLocalPos);
+	vNormal = normalize(normalMatrix * totalNormal.xyz);
+	vUv = uv;
+	gl_Position = projMatrix * mvMatrix * totalLocalPos;
 }

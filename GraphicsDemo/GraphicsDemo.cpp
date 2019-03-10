@@ -14,8 +14,8 @@
 #include "ShaderPrograms.h"
 #include "FontRenderer.h"
 #include "Material.h"
+#include "FbxLoader.h"
 
-void LoadFbxSdkObject(const char* const filename, std::vector<std::shared_ptr<Object>>& objectStack);
 std::shared_ptr<Mesh> GeneratePlane();
 
 namespace
@@ -87,11 +87,16 @@ void GraphicsDemo::OnStart()
     m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
 
     // Load dragon form fbx file.
-    LoadFbxSdkObject("./Resources/56-fbx/fbx/Dragon 2.5_fbx.fbx", m_objects);
+    FbxLoader loader;
+    //loader.Load("./Resources/56-fbx/fbx/Dragon 2.5_fbx.fbx");
     // Dragon is facing downward after loaded. I'm rotating it to make it face forward. (+Z)
-    m_objects.back()->SetRotation(glm::angleAxis(glm::pi<float>()*-0.5f, glm::vec3(1, 0, 0)));
+    // m_objects.back()->SetRotation(glm::angleAxis(glm::pi<float>()*-0.5f, glm::vec3(1, 0, 0)));
 
-    AddGround();
+    loader.Load("./Resources/Punching Tri.fbx");
+    //loader.Load("./Resources/WiggleBox.fbx");
+    m_objects.push_back(loader.GetObjectByIndex(0));
+
+    // AddGround();
 
     s_fontRenderer.SetFont("fonts/times.ttf");
     s_fontRenderer.SetScreenOrigin(.0f, .0f);
@@ -120,6 +125,13 @@ void GraphicsDemo::Update(float dt)
     s_speedZ += g * -d.z * SecPerFrame;
     d.z += s_speedZ * SecPerFrame;
     s_spotLight.SetDirection(glm::normalize(d));
+
+    //////////
+
+    for (std::shared_ptr<Object> pObject : m_objects)
+    {
+        pObject->Update();
+    }
 }
 
 void GraphicsDemo::Render()
@@ -271,7 +283,7 @@ void GraphicsDemo::AddGround()
     std::shared_ptr<Object> pGround(new Object);
 
     // Ground mesh
-    pGround->SetMesh(GeneratePlane());
+    pGround->AddMesh(GeneratePlane());
 
     // Scale to cover large area
     pGround->SetScale(glm::vec3(100, 1, 100));

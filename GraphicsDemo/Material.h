@@ -93,7 +93,7 @@ public:
     void SetShininess(GLfloat shininess) { m_shininess = shininess; }
 
     // Bake material properties.
-    bool Initialize(const FbxSurfaceMaterial * pMaterial);
+    bool Initialize(const FbxSurfaceMaterial * pFbxMaterial);
 
     static Material& GetDefaultMaterial();
 

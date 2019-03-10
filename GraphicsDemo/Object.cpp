@@ -17,6 +17,8 @@
 
 namespace
 {
+    const int MaximumBoneCount = 128;
+
     void SendMaterial(ShaderProgram& program, Material& material)
     {
         if (material.GetAmbientMap() != 0)
@@ -37,7 +39,7 @@ Object::Object()
     , m_scale(1,1,1)
     , m_rotation(glm::identity<glm::quat>())
     , m_mvMatrix(glm::identity<glm::mat4x4>())
-    , m_mesh()
+    , m_meshes()
 {
 }
 
@@ -96,6 +98,14 @@ void Object::UpdateTransformMatrix()
     m_mvMatrix = glm::translate(m_mvMatrix, m_position);
 }
 
+void Object::Update()
+{
+    if (m_pAnimator)
+    {
+        m_pAnimator->Update(*this);
+    }
+}
+
 const glm::mat4x4& Object::GetTransformMatrix()
 {
     return m_mvMatrix;
@@ -114,38 +124,73 @@ void Object::Free()
         m_materials.pop_back();
     }
 
-    if (m_mesh)
+    while( !m_meshes.empty())
     {
-        m_mesh->Free();
-        m_mesh.reset();
+        m_meshes.back()->Free();
+        m_meshes.pop_back();
     }
 }
 
 void Object::Render(ShaderProgram& program)
 {
-    m_mesh->Apply();
-
-    if (m_mesh->HasSubMesh())
+    if (m_pSkeleton)
     {
-        for (int i = 0; i < m_mesh->GetSubMeshCount(); ++i)
+        glm::mat4 boneTransforms[MaximumBoneCount];
+        const int BoneCount = m_pSkeleton->GetBoneCount();
+        for (int i = 0; i < BoneCount; ++i)
         {
-            SendMaterial(program, *m_materials[i]);
-            Mesh::SubMesh subMesh = m_mesh->GetSubMesh(i);
-            glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
-            GET_AND_HANDLE_GL_ERROR();
+            Bone& bone = m_pSkeleton->GetBoneByIndex(i);
+            boneTransforms[i] = bone.GetAnimationTrasnform();
         }
-    }
-    else
-    {
-        if (m_materials.size() == 0)
+        for (int i = BoneCount; i < MaximumBoneCount; ++i)
         {
-            SendMaterial(program, Material::GetDefaultMaterial());
+            boneTransforms[i] = glm::identity<glm::mat4>();
+        }
+
+        program.TrySendUniform("jointTransforms[0]", BoneCount, GL_FALSE, boneTransforms[0]);
+    }
+
+    for (auto& mesh : m_meshes)
+    {
+        mesh->Apply();
+
+        if (mesh->HasSubMesh())
+        {
+            for (int i = 0; i < mesh->GetSubMeshCount(); ++i)
+            {
+                SendMaterial(program, *m_materials[i]);
+                Mesh::SubMesh subMesh = mesh->GetSubMesh(i);
+                glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
+                GET_AND_HANDLE_GL_ERROR();
+            }
         }
         else
         {
-            SendMaterial(program, *m_materials[0]);
+            if (m_materials.size() == 0)
+            {
+                SendMaterial(program, Material::GetDefaultMaterial());
+            }
+            else
+            {
+                SendMaterial(program, *m_materials[0]);
+            }
+            glDrawArrays(GL_TRIANGLES, 0, mesh->GetAttributeArray(0).GetAttributeCount());
+            GET_AND_HANDLE_GL_ERROR();
         }
-        glDrawArrays(GL_TRIANGLES, 0, m_mesh->GetAttributeArray(0).GetAttributeCount());
-        GET_AND_HANDLE_GL_ERROR();
     }
+}
+
+std::shared_ptr<Skeleton> Object::GetSkeleton()
+{
+    return m_pSkeleton;
+}
+
+void Object::SetSkeleton(std::shared_ptr<Skeleton> pSkeleton)
+{
+    m_pSkeleton = pSkeleton;
+}
+
+void Object::SetAnimator(std::shared_ptr<Animator> pAnimator)
+{
+    m_pAnimator = pAnimator;
 }

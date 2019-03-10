@@ -9,6 +9,12 @@
 
     Reference:
         FbxSdk 'ViewScene' Demo
+        Help Page - http://help.autodesk.com/view/FBX/2019/ENU/?guid=FBX_Developer_Help_welcome_to_the_fbx_sdk_what_new_fbx_sdk_2019_html
+        FBX SDK API Reference - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/annotated.html
+            FbxSkeleton - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_skeleton.html
+            FbxDeformer - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_deformer.html
+            FbxSkin - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_skin.html
+            FbxCluster - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_cluster.html
 
     Todo:
         Currently texture objects are saved in FbxNode UserDataPtr. Move it to somewhere else.
@@ -17,6 +23,7 @@
         190303 - Removed dependency on glm
 */
 #include "Common.h"
+#include "FbxLoader.h"
 #include "SystemComponent.h"
 #include "Errors.h"
 #include "Object.h"
@@ -24,340 +31,801 @@
 #include "Material.h"
 #include "Mesh.h"
 #include "stb_image.h"
+#include "Skeleton.h"
+#include "Bone.h"
+#include "Animation.h"
+#include "Animator.h"
+
+class AnimationKeyFrame
+{
+public:
+    AnimationKeyFrame()
+    {
+    }
+
+private:
+    glm::vec3 m_translation;
+    glm::quat m_rotation;
+};
 
 namespace
 {
-    const int TRIANGLE_VERTEX_COUNT = 3;
+    const char* const Invalid = "[INVALID]";
 
-    void InitializeSdkObjects(FbxManager*& pManager, FbxScene*& pScene)
+    enum : int
     {
-        //The first thing to do is to create the FBX Manager which is the object allocator for almost all the classes in the SDK
-        pManager = FbxManager::Create();
-        if (!pManager)
+        TRIANGLE_VERTEX_COUNT = 3,
+        COMPONENT_COUNT_POSITION = 3,
+        COMPONENT_COUNT_UV = 2,
+        COMPONENT_COUNT_NORMAL = 3,
+        COMPONENT_COUNT_BONE = 3,
+        COMPONENT_COUNT_WEIGHT = 3
+    };
+    
+    void TraverseFbxNodeDepthFirst(FbxNode* pNode, std::function<void(FbxNode* node, int depth)> delegator, int depth = 0)
+    {
+        const int ChildCount = pNode->GetChildCount();
+
+        delegator(pNode, depth);
+
+        for (int i = 0; i < ChildCount; ++i)
         {
-            FBXSDK_printf("Error: Unable to create FBX Manager!\n");
-            exit(1);
-        }
-        else FBXSDK_printf("Autodesk FBX SDK version %s\n", pManager->GetVersion());
-
-        //Create an IOSettings object. This object holds all import/export settings.
-        FbxIOSettings* ios = FbxIOSettings::Create(pManager, IOSROOT);
-        pManager->SetIOSettings(ios);
-
-        //Load plugins from the executable directory (optional)
-        FbxString lPath = FbxGetApplicationDirectory();
-        pManager->LoadPluginsDirectory(lPath.Buffer());
-
-        //Create an FBX scene. This object holds most objects imported/exported from/to files.
-        pScene = FbxScene::Create(pManager, "My Scene");
-        if (!pScene)
-        {
-            FBXSDK_printf("Error: Unable to create FBX scene!\n");
-            exit(1);
+            TraverseFbxNodeDepthFirst(pNode->GetChild(i), delegator, depth + 1);
         }
     }
 
-    // Find all the cameras under this node recursively.
-    void FillCameraArrayRecursive(FbxNode* pNode, FbxArray<FbxNode*>& pCameraArray)
+    struct BoneWeight
     {
-        if (pNode)
+        BoneWeight(int boneIndex, float weight)
+            : boneIndex(boneIndex)
+            , weight(weight)
         {
-            if (pNode->GetNodeAttribute())
-            {
-                if (pNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eCamera)
-                {
-                    pCameraArray.Add(pNode);
-                }
-            }
-
-            const int lCount = pNode->GetChildCount();
-            for (int i = 0; i < lCount; i++)
-            {
-                FillCameraArrayRecursive(pNode->GetChild(i), pCameraArray);
-            }
-        }
-    }
-
-    // Find all the cameras in this scene.
-    void FillCameraArray(FbxScene* pScene, FbxArray<FbxNode*>& pCameraArray)
-    {
-        pCameraArray.Clear();
-
-        FillCameraArrayRecursive(pScene->GetRootNode(), pCameraArray);
-    }
-
-    // Find all poses in this scene.
-    void FillPoseArray(FbxScene* pScene, FbxArray<FbxPose*>& pPoseArray)
-    {
-        const int lPoseCount = pScene->GetPoseCount();
-
-        for (int i = 0; i < lPoseCount; ++i)
-        {
-            pPoseArray.Add(pScene->GetPose(i));
-        }
-    }
-
-    void LoadRecursive(FbxNode* pNode, std::vector<std::shared_ptr<Object>>& objectStack, int depth = 0)
-    {
-        FbxNodeAttribute* pAttribute = pNode->GetNodeAttribute();
-        if (pAttribute)
-        {
-            std::map<int, std::vector<int>> submeshes;
-            if (pAttribute->GetAttributeType() == FbxNodeAttribute::eMesh)
-            {
-                std::shared_ptr<Object> pObject(new Object());
-
-                // Bake material and hook as user data.
-                const int materialCount = pNode->GetMaterialCount();
-                for (int mi = 0; mi < materialCount; ++mi)
-                {
-                    FbxSurfaceMaterial * pMaterial = pNode->GetMaterial(mi);
-                    if (pMaterial)
-                    {
-                        std::shared_ptr<Material> pMyMaterial(new Material());
-                        pMyMaterial->Initialize(pMaterial);
-                        pObject->AddMaterial(pMyMaterial);
-                    }
-                }
-
-                FbxMesh* pMesh = pNode->GetMesh();
-                int polygonCount = pMesh->GetPolygonCount();
-                int elementMaterialCount = pMesh->GetElementMaterialCount();
-                FbxLayerElementArrayTemplate<int>* materialIndices;
-                pMesh->GetMaterialIndices(&materialIndices);
-                FbxGeometryElement::EMappingMode mappingMode = pMesh->GetElementMaterial()->GetMappingMode();
-                FbxGeometryElement::EReferenceMode referenceMode = pMesh->GetElementMaterial()->GetReferenceMode();
-                if (materialIndices && mappingMode == FbxGeometryElement::eByPolygon)
-                {
-                    if (materialIndices->GetCount() == polygonCount)
-                    {
-                        // Count the faces of each material
-                        for (int pi = 0; pi < polygonCount; ++pi)
-                        {
-                            const int materialIndex = materialIndices->GetAt(pi);
-                            submeshes[materialIndex].push_back(pi);
-                        }
-                    }
-                }
-
-                FbxStringList lUVNames;
-                pMesh->GetUVSetNames(lUVNames);
-                const char * lUVName = NULL;
-                const int uvCount = lUVNames.GetCount();
-                if (uvCount)
-                {
-                    lUVName = lUVNames[0];
-                }
-
-                std::vector<float> positions;
-                std::vector<float> normals;
-                std::vector<float> uvs;
-
-                for (std::map<int, std::vector<int>>::iterator it = submeshes.begin(); it != submeshes.end(); ++it)
-                {
-                    std::vector<int> subMeshPolygonsIndice = it->second;
-                    for (int i : subMeshPolygonsIndice)
-                    {
-                        for (int j = 0; j < TRIANGLE_VERTEX_COUNT; ++j)
-                        {
-                            int controlPointIndex = pMesh->GetPolygonVertex(i, j);
-                            FbxVector4 controlPoint = pMesh->GetControlPointAt(controlPointIndex);
-                            positions.push_back(static_cast<float>(controlPoint[0]));
-                            positions.push_back(static_cast<float>(controlPoint[1]));
-                            positions.push_back(static_cast<float>(controlPoint[2]));
-
-                            FbxVector4 fbxNormal;
-                            pMesh->GetPolygonVertexNormal(i, j, fbxNormal);
-                            normals.push_back(static_cast<float>(fbxNormal[0]));
-                            normals.push_back(static_cast<float>(fbxNormal[1]));
-                            normals.push_back(static_cast<float>(fbxNormal[2]));
-
-                            FbxVector2 fbxUv;
-                            bool unmapped;
-                            pMesh->GetPolygonVertexUV(i, j, lUVName, fbxUv, unmapped);
-                            uvs.push_back(static_cast<float>(fbxUv[0]));
-                            uvs.push_back(static_cast<float>(fbxUv[1]));
-                        }
-                    }
-                }
-
-                std::shared_ptr<Mesh> pMyMesh(new Mesh());
-                if (!submeshes.empty())
-                {
-                    int begin = 0;
-                    for (std::map<int, std::vector<int>>::iterator it = submeshes.begin(); it != submeshes.end(); ++it)
-                    {
-                        Mesh::SubMesh subMesh;
-                        subMesh.begin = begin;
-                        subMesh.vertCount = static_cast<int>(it->second.size() * TRIANGLE_VERTEX_COUNT);
-                        pMyMesh->AddSubMesh(subMesh);
-                        begin += subMesh.vertCount;
-                    }
-                }
-                AttributeArray aaPositions(3, GL_FLOAT, 0, 0);
-                aaPositions.Fill(positions.size() * sizeof(positions[0]), positions.data());
-                pMyMesh->AddAttributeArray(aaPositions);
-
-                AttributeArray aaUvs(2, GL_FLOAT, 0, 0);
-                aaUvs.Fill(uvs.size() * sizeof(uvs[0]), uvs.data());
-                pMyMesh->AddAttributeArray(aaUvs);
-
-                AttributeArray aaNormals(3, GL_FLOAT, 0, 0);
-                aaNormals.Fill(normals.size() * sizeof(normals[0]), normals.data());
-                pMyMesh->AddAttributeArray(aaNormals);
-
-                pObject->SetMesh(pMyMesh);
-                objectStack.push_back(pObject);
-            }
         }
 
-        for (int i = 0; i < pNode->GetChildCount(); ++i)
-            LoadRecursive(pNode->GetChild(i), objectStack, depth + 1);
-    }
+        int boneIndex;
+        float weight;
+    };
 
+    // 
+    // Dependency : stb_image.h 
+    // Loads texture file and generates 2D OpenGL texture object
+    // 
     bool LoadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject)
     {
-        int x, y, n;
-        stbi_set_flip_vertically_on_load(true);
-        unsigned char* data = stbi_load(pFilePath.Buffer(), &x, &y, &n, 0);
+        int imageWidth, imageHeight, channelCount;
 
+        // OpenGL Texture pixel data must start from bottom-left whereas actual file data usually has data starting from top-left
+        stbi_set_flip_vertically_on_load(true);
+
+        unsigned char* data = stbi_load(pFilePath.Buffer(), &imageWidth, &imageHeight, &channelCount, 0);
 
         // Transfer the texture date into GPU
         glGenTextures(1, &pTextureObject);
+        GET_AND_HANDLE_GL_ERROR();
         glBindTexture(GL_TEXTURE_2D, pTextureObject);
+        GET_AND_HANDLE_GL_ERROR();
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        if (n == 3)
+        GET_AND_HANDLE_GL_ERROR();
+        // RGB
+        if (channelCount == 3)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, x, y, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         }
-        else if (n == 4)
+        // RGBA
+        else if (channelCount == 4)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         }
         else
         {
+            // GRAY -> channel count == 1
+            // GRAY ALPHA -> channel count == 2
             std::cout << "Not supported" << std::endl;
         }
 
         glBindTexture(GL_TEXTURE_2D, 0);
+        GET_AND_HANDLE_GL_ERROR();
 
         stbi_image_free(data);
 
         return true;
     }
+
+    void LoadRecursive(FbxNode* pFbxNode)
+    {
+        
+    }
+
+    const char* ToString(FbxNodeAttribute::EType type)
+    {
+        switch (type)
+        {
+        case FbxNodeAttribute::EType::eUnknown: return "eUnknown";
+        case FbxNodeAttribute::EType::eNull: return "eNull";
+        case FbxNodeAttribute::EType::eMarker: return "eMarker";
+        case FbxNodeAttribute::EType::eSkeleton: return "eSkeleton";
+        case FbxNodeAttribute::EType::eMesh: return "eMesh";
+        case FbxNodeAttribute::EType::eNurbs: return "eNurbs";
+        case FbxNodeAttribute::EType::ePatch: return "ePatch";
+        case FbxNodeAttribute::EType::eCamera: return "eCamera";
+        case FbxNodeAttribute::EType::eCameraStereo: return "eCameraStereo";
+        case FbxNodeAttribute::EType::eCameraSwitcher: return "eCameraSwitcher";
+        case FbxNodeAttribute::EType::eLight: return "eLight";
+        case FbxNodeAttribute::EType::eOpticalReference: return "eOpticalReference";
+        case FbxNodeAttribute::EType::eOpticalMarker: return "eOpticalMarker";
+        case FbxNodeAttribute::EType::eNurbsCurve: return "eNurbsCurve";
+        case FbxNodeAttribute::EType::eTrimNurbsSurface: return "eTrimNurbsSurface";
+        case FbxNodeAttribute::EType::eBoundary: return "eBoundary";
+        case FbxNodeAttribute::EType::eNurbsSurface: return "eNurbsSurface";
+        case FbxNodeAttribute::EType::eShape: return "eShape";
+        case FbxNodeAttribute::EType::eLODGroup: return "eLODGroup";
+        case FbxNodeAttribute::EType::eSubDiv: return "eSubDiv";
+        case FbxNodeAttribute::EType::eCachedEffect: return "eCachedEffect";
+        case FbxNodeAttribute::EType::eLine: return "eLine";
+        }
+        return Invalid;
+    }
+
+    const char* ToString(FbxDeformer::EDeformerType type)
+    {
+        switch (type)
+        {
+        case FbxDeformer::EDeformerType::eUnknown: return "eUnknown";           // Unknown deformer type
+        case FbxDeformer::EDeformerType::eSkin: return "eSkin";                 // Type FbxSkin
+        case FbxDeformer::EDeformerType::eBlendShape: return "eBlendShape";     // Type FbxBlendShape
+        case FbxDeformer::EDeformerType::eVertexCache: return "eVertexCache";   // Type FbxVertexCacheDeformer
+        }
+        return Invalid;
+    }
+
+    const char* ToString(FbxSkeleton::EType type)
+    {
+        switch (type)
+        {
+        case FbxSkeleton::EType::eRoot: return "eRoot";             // First element of a chain.
+        case FbxSkeleton::EType::eLimb: return "eLimb";             // Chain element.
+        case FbxSkeleton::EType::eLimbNode: return "eLimbNode";     // Chain element.
+        case FbxSkeleton::EType::eEffector: return "eEffector";     // Last element of a chain.
+        }
+        return Invalid;
+    }
+
+    const char* ToString(FbxCluster::ELinkMode linkMode)
+    {
+        switch (linkMode)
+        {
+        case FbxCluster::ELinkMode::eNormalize:return "eNormalize";
+        case FbxCluster::ELinkMode::eAdditive:return "eAdditive";
+        case FbxCluster::ELinkMode::eTotalOne:return "eTotalOne";
+        }
+        return Invalid;
+    }
+    
+    std::ostream& operator<<(std::ostream& os, const FbxColor& color)
+    {
+        return os << "FbxColor("
+            << color.mRed << ','
+            << color.mGreen << ','
+            << color.mBlue << ','
+            << color.mAlpha << ")";
+    }
+
+    std::ostream& operator<<(std::ostream& os, const glm::mat4& rhs)
+    {
+        return
+        os << std::setw(4) << std::setprecision(2) << std::fixed
+           << rhs[0][0] << ' ' << rhs[1][0] << ' ' << rhs[2][0] << ' ' << rhs[3][0] << std::endl
+           << rhs[0][1] << ' ' << rhs[1][1] << ' ' << rhs[2][1] << ' ' << rhs[3][1] << std::endl
+           << rhs[0][2] << ' ' << rhs[1][2] << ' ' << rhs[2][2] << ' ' << rhs[3][2] << std::endl
+           << rhs[0][3] << ' ' << rhs[1][3] << ' ' << rhs[2][3] << ' ' << rhs[3][3];
+    }
+
+    void FbxAMatrixToGlmMat4(const FbxAMatrix& src, glm::mat4& dest)
+    {
+        std::transform(static_cast<const double*>(src),
+            static_cast<const double*>(src) + 16,
+            &dest[0][0],
+            [](double d) { return static_cast<float>(d); });
+    }
+
+    glm::mat4 ToMat4(const FbxAMatrix& src)
+    {
+        glm::mat4 dest;
+        std::transform(static_cast<const double*>(src),
+            static_cast<const double*>(src) + 16,
+            &dest[0][0],
+            [](double d) { return static_cast<float>(d); });
+        return dest;
+    }
 }
 
-void LoadFbxSdkObject(const char* const filename, std::vector<std::shared_ptr<Object>>& objectStack)
+FbxLoader::FbxLoader()
+    : m_pFbxManager(nullptr)
+    , m_pScene(nullptr)
 {
-    FbxManager* pManager;
-    FbxScene* pScene;
-    InitializeSdkObjects(pManager, pScene);
-    FbxImporter* pImporter;
-    FbxArray<FbxString*> mAnimStackNameArray;
-    FbxArray<FbxNode*> mCameraArray;
-    FbxArray<FbxPose*> mPoseArray;
-    FbxTime mFrameTime;
-
-    if (pManager)
+    //The first thing to do is to create the FBX Manager which is the object allocator for almost all the classes in the SDK
+    m_pFbxManager = FbxManager::Create();
+    if (!m_pFbxManager)
     {
-        // Create the importer.
-        int lFileFormat = -1;
-        pImporter = FbxImporter::Create(pManager, "");
-        if (!pManager->GetIOPluginRegistry()->DetectReaderFileFormat(filename, lFileFormat))
+        std::cerr << "Error: Unable to create FBX Manager!" << std::endl;
+    }
+    else
+    {
+        std::cout << "Autodesk FBX SDK version %s\n" << m_pFbxManager->GetVersion() << std::endl;
+    }
+
+    //Create an IOSettings object. This object holds all import/export settings.
+    FbxIOSettings* ios = FbxIOSettings::Create(m_pFbxManager, IOSROOT);
+    m_pFbxManager->SetIOSettings(ios);
+
+    //Load plugins from the executable directory (optional)
+    FbxString lPath = FbxGetApplicationDirectory();
+    m_pFbxManager->LoadPluginsDirectory(lPath.Buffer());
+
+    //Create an FBX scene. This object holds most objects imported/exported from/to files.
+    m_pScene = FbxScene::Create(m_pFbxManager, "");
+    if (!m_pScene)
+    {
+        std::cerr << "Error: Unable to create FBX scene!" << std::endl;
+    }
+}
+
+FbxLoader::~FbxLoader()
+{
+    if (m_pScene)
+    {
+        m_pScene->Destroy();
+        m_pScene = nullptr;
+    }
+
+    if (m_pFbxManager)
+    {
+        m_pFbxManager->Destroy();
+        m_pFbxManager = nullptr;
+    }
+}
+
+void FbxLoader::Load(const char* filename)
+{
+    FbxImporter* pImporter;
+
+    // Create the importer.
+    int fileFormat = -1;
+    pImporter = FbxImporter::Create(m_pFbxManager, "");
+    if (!m_pFbxManager->GetIOPluginRegistry()->DetectReaderFileFormat(filename, fileFormat))
+    {
+        // Unrecognizable file format. Try to fall back to FbxImporter::eFBX_BINARY
+        fileFormat = m_pFbxManager->GetIOPluginRegistry()->FindReaderIDByDescription("FBX binary (*.fbx)");;
+    }
+
+    // Initialize the importer by providing a filename.
+    bool success = pImporter->Initialize(filename, fileFormat);
+    assert(success);
+    if (!success)
+    {
+        return;
+    }
+
+    success = pImporter->Import(m_pScene);
+    assert(success);
+    if (!success)
+    {
+        pImporter->Destroy();
+        m_pScene = nullptr;
+        return;
+    }
+
+    // Convert Axis System to OpenGL
+    FbxAxisSystem SceneAxisSystem = m_pScene->GetGlobalSettings().GetAxisSystem();
+    FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eRightHanded);
+    if (SceneAxisSystem != OurAxisSystem)
+    {
+        OurAxisSystem.ConvertScene(m_pScene);
+    }
+
+    // Convert Unit System to what is used in this example, if needed
+    FbxSystemUnit SceneSystemUnit = m_pScene->GetGlobalSettings().GetSystemUnit();
+    if (SceneSystemUnit.GetScaleFactor() != 1.0)
+    {
+        //The unit in this example is centimeter.
+        FbxSystemUnit::cm.ConvertScene(m_pScene);
+    }
+
+    //// Convert mesh, NURBS and patch into triangle mesh
+    //FbxGeometryConverter lGeomConverter(m_pFbxManager);
+    //lGeomConverter.Triangulate(m_pScene, /*replace*/true);
+
+    LoadTextures();
+
+    LoadMaterial();
+
+    LoadSkeleton();
+
+    LoadMesh();
+
+    LoadAnimation(pImporter);
+
+    std::shared_ptr<Object> pObject(new Object);
+
+    for (auto& material : m_materials)
+    {
+        pObject->AddMaterial(material);
+    }
+
+    for (int i = 0; i < m_meshes.size(); ++i)
+    {
+        pObject->AddMesh(m_meshes[i]);
+    }
+
+    if (m_pSkeleton)
+    {
+        pObject->SetSkeleton(m_pSkeleton);
+    }
+
+    if (m_pAnimator)
+    {
+        pObject->SetAnimator(m_pAnimator);
+    }
+
+    m_objects.push_back(pObject);
+}
+
+void FbxLoader::LoadTextures()
+{
+    assert(m_pScene != nullptr);
+
+    const int TextureCount = m_pScene->GetTextureCount();
+    for (int ti = 0; ti < TextureCount; ++ti)
+    {
+        FbxTexture * pTexture = m_pScene->GetTexture(ti);
+        FbxFileTexture * pFileTexture = FbxCast<FbxFileTexture>(pTexture);
+        if (pFileTexture)
         {
-            // Unrecognizable file format. Try to fall back to FbxImporter::eFBX_BINARY
-            lFileFormat = pManager->GetIOPluginRegistry()->FindReaderIDByDescription("FBX binary (*.fbx)");;
+            // Try to load the texture from absolute path
+            const FbxString fileName = pFileTexture->GetFileName();
+
+#ifndef NDEBUG
+            std::cout << "Loading Texture at index " << ti << ": " << fileName << std::endl;
+#endif
+
+            GLuint textureObject = 0;
+            bool success = LoadTextureFromFile(fileName, textureObject);
+
+            const FbxString absoluteFileName = FbxPathUtils::Resolve(fileName);
+            const FbxString absoluteFolderName = FbxPathUtils::GetFolderName(absoluteFileName);
+            if (!success)
+            {
+#ifndef NDEBUG
+                std::cout << "Load texture from relative file name (relative to FBX file)" << std::endl;
+#endif
+                const FbxString resolvedFileName = FbxPathUtils::Bind(absoluteFolderName, pFileTexture->GetRelativeFileName());
+                success = LoadTextureFromFile(resolvedFileName, textureObject);
+            }
+
+            if (!success)
+            {
+#ifndef NDEBUG
+                std::cout << "Load texture from file name only (relative to FBX file)" << std::endl;
+#endif
+                const FbxString textureFileName = FbxPathUtils::GetFileName(fileName);
+                const FbxString resolvedFileName = FbxPathUtils::Bind(absoluteFolderName, textureFileName);
+                success = LoadTextureFromFile(resolvedFileName, textureObject);
+            }
+
+            if (!success)
+            {
+                std::cerr << "Failed to load texture file: " << fileName << std::endl;
+                continue;
+            }
+            
+            assert(success);
+            if (success)
+            {
+                GLuint * lTextureName = new GLuint(textureObject);
+                pFileTexture->SetUserDataPtr(lTextureName);
+            }
+        }
+    }
+}
+
+//
+// Loads all material in the scene
+// FbxSurfacecMaterial - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_surface_material.html
+// Inheritance:
+//     FbxEmitter < FbxObject < FbxSurfaceMaterial < FbxSurfaceLambert < FbxSurfacePhong
+// 
+void FbxLoader::LoadMaterial()
+{
+    assert(m_pScene != nullptr);
+    
+    const int MaterialCount = m_pScene->GetMaterialCount();
+    for (int i = 0; i < MaterialCount; ++i)
+    {
+#ifndef NDEBUG
+        std::cout << "Loading Material at " << i << std::endl;
+#endif
+
+        FbxSurfaceMaterial* pFbxMaterial = m_pScene->GetMaterial(i);
+
+        std::shared_ptr<Material> pMaterial(new Material());
+
+        pMaterial->Initialize(pFbxMaterial);
+
+        m_materials.push_back(pMaterial);
+    }
+}
+
+void FbxLoader::LoadSkeleton()
+{
+    assert(m_pScene != nullptr);
+
+    FbxNode* pRootNode = m_pScene->GetRootNode();
+
+    m_pSkeleton.reset(new Skeleton());
+
+    TraverseFbxNodeDepthFirst(pRootNode, [this](FbxNode* pNode, int depth)
+    {
+        const int IndentSize = 4;
+        const std::string Indent(depth * IndentSize, ' ');
+        const char* pNodeName = pNode->GetName();
+        FbxNodeAttribute* pAttribute = pNode->GetNodeAttribute();
+        FbxNodeAttribute::EType attributeType;
+        std::string strAttributeType;
+        // Attribute can be absent
+        if (pAttribute)
+        {
+            attributeType = pAttribute->GetAttributeType();
+            strAttributeType = ToString(attributeType);
+        }
+        
+        std::cout << Indent << pNodeName << "(" << depth << ") - " << strAttributeType << std::endl;
+
+        if (pAttribute && attributeType == FbxNodeAttribute::EType::eSkeleton)
+        {
+            FbxSkeleton* pSkeleton = pNode->GetSkeleton();
+
+            FbxNode* pParent = pNode->GetParent();
+            
+            //// display skeleton type
+            //FbxSkeleton::EType skeletonType = pSkeleton->GetSkeletonType();
+            //std::cout << Indent << "Skeleton Type : " << ToString(skeletonType) << std::endl;
+            //
+            //// Display limb node color
+            //FbxColor limbNodeColor = pSkeleton->GetLimbNodeColor();
+            //std::cout << Indent << "Limb Node Color : " << limbNodeColor << std::endl;
+
+            // Create and fill skeleton
+            Bone bone;
+            bone.SetName(pNode->GetName());
+            
+            int parentIndex = m_pSkeleton->FindBoneIndex(pParent->GetName());
+
+            bone.SetParent(parentIndex);
+
+            m_pSkeleton->AddBone(bone);
+        }
+    });
+}
+
+void FbxLoader::LoadMesh()
+{
+    assert(m_pScene != nullptr);
+
+    FbxNode* pRootNode = m_pScene->GetRootNode();
+    TraverseFbxNodeDepthFirst(pRootNode, [this](FbxNode* pNode, int depth)
+    {
+        FbxNodeAttribute* pAttribute = pNode->GetNodeAttribute();
+
+        // Attribute can be absent.
+        if (!pAttribute)
+            return;
+
+        // Only interested in mesh node
+        if (pAttribute->GetAttributeType() != FbxNodeAttribute::eMesh)
+            return;
+
+        // Sub meshes. One submesh per material.
+        std::map<int, std::vector<int>> submeshes;
+
+
+        const int MaterialCount = pNode->GetMaterialCount();
+        for (int mi = 0; mi < MaterialCount; ++mi)
+        {
+            FbxSurfaceMaterial * pMaterial = pNode->GetMaterial(mi);
+            if (pMaterial)
+            {
+                std::cout << pMaterial->GetName() << std::endl;
+            }
         }
 
-        // Initialize the importer by providing a filename.
-        if (pImporter->Initialize(filename, lFileFormat))
+        FbxMesh* pMesh = pNode->GetMesh();
+        const int PolygonCount = pMesh->GetPolygonCount();
+        const int ElementMaterialCount = pMesh->GetElementMaterialCount();
+        FbxLayerElementArrayTemplate<int>* materialIndices;
+        pMesh->GetMaterialIndices(&materialIndices);
+        FbxGeometryElement::EMappingMode mappingMode = pMesh->GetElementMaterial()->GetMappingMode();
+        FbxGeometryElement::EReferenceMode referenceMode = pMesh->GetElementMaterial()->GetReferenceMode();
+        if (materialIndices)
         {
-            if (pImporter->Import(pScene))
+            if (mappingMode == FbxGeometryElement::eByPolygon)
             {
-                // Convert Axis System to what is used in this example, if needed
-                FbxAxisSystem SceneAxisSystem = pScene->GetGlobalSettings().GetAxisSystem();
-                FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eRightHanded);
-                if (SceneAxisSystem != OurAxisSystem)
+                assert(materialIndices->GetCount() == PolygonCount);
+                // Count the faces of each material
+                for (int pi = 0; pi < PolygonCount; ++pi)
                 {
-                    OurAxisSystem.ConvertScene(pScene);
+                    const int materialIndex = materialIndices->GetAt(pi);
+                    submeshes[materialIndex].push_back(pi);
                 }
-
-                // Convert Unit System to what is used in this example, if needed
-                FbxSystemUnit SceneSystemUnit = pScene->GetGlobalSettings().GetSystemUnit();
-                if (SceneSystemUnit.GetScaleFactor() != 1.0)
+            }
+            else if (mappingMode == FbxGeometryElement::EMappingMode::eAllSame)
+            {
+                for (int pi = 0; pi < PolygonCount; ++pi)
                 {
-                    //The unit in this example is centimeter.
-                    FbxSystemUnit::cm.ConvertScene(pScene);
+                    submeshes[0].push_back(pi);
                 }
+            }
+        }
 
-                // Get the list of all the animation stack.
-                pScene->FillAnimStackNameArray(mAnimStackNameArray);
+        FbxStringList lUVNames;
+        pMesh->GetUVSetNames(lUVNames);
+        const char * lUVName = NULL;
+        const int uvCount = lUVNames.GetCount();
+        if (uvCount)
+        {
+            lUVName = lUVNames[0];
+        }
 
-                // Get the list of all the cameras in the scene.
-                FillCameraArray(pScene, mCameraArray);
+        const int PolygonVertexCount = pMesh->GetPolygonVertexCount();
+        std::vector<float> positions;
+        positions.reserve(PolygonVertexCount * COMPONENT_COUNT_POSITION);
+        std::vector<float> normals;
+        normals.reserve(PolygonVertexCount * COMPONENT_COUNT_NORMAL);
+        std::vector<float> uvs;
+        uvs.reserve(PolygonVertexCount * COMPONENT_COUNT_UV);
+        std::vector<int> boneIndices(PolygonVertexCount * COMPONENT_COUNT_BONE);
+        std::vector<float> weights(PolygonVertexCount * COMPONENT_COUNT_WEIGHT);
 
-                // Convert mesh, NURBS and patch into triangle mesh
-                FbxGeometryConverter lGeomConverter(pManager);
-                lGeomConverter.Triangulate(pScene, /*replace*/true);
-
-                // Load the textures into GPU, only for file texture now
-                const int textureCount = pScene->GetTextureCount();
-                for (int ti = 0; ti < textureCount; ++ti)
+        for (std::map<int, std::vector<int>>::iterator it = submeshes.begin(); it != submeshes.end(); ++it)
+        {
+            std::vector<int> subMeshPolygonsIndice = it->second;
+            for (int i : subMeshPolygonsIndice)
+            {
+                for (int j = 0; j < TRIANGLE_VERTEX_COUNT; ++j)
                 {
-                    FbxTexture * pTexture = pScene->GetTexture(ti);
-                    FbxFileTexture * lFileTexture = FbxCast<FbxFileTexture>(pTexture);
-                    if (lFileTexture && !lFileTexture->GetUserDataPtr())
+                    int controlPointIndex = pMesh->GetPolygonVertex(i, j);
+                    FbxVector4 controlPoint = pMesh->GetControlPointAt(controlPointIndex);
+                    positions.push_back(static_cast<float>(controlPoint[0]));
+                    positions.push_back(static_cast<float>(controlPoint[1]));
+                    positions.push_back(static_cast<float>(controlPoint[2]));
+
+                    FbxVector4 fbxNormal;
+                    pMesh->GetPolygonVertexNormal(i, j, fbxNormal);
+                    normals.push_back(static_cast<float>(fbxNormal[0]));
+                    normals.push_back(static_cast<float>(fbxNormal[1]));
+                    normals.push_back(static_cast<float>(fbxNormal[2]));
+
+                    FbxVector2 fbxUv;
+                    bool unmapped;
+                    pMesh->GetPolygonVertexUV(i, j, lUVName, fbxUv, unmapped);
+                    uvs.push_back(static_cast<float>(fbxUv[0]));
+                    uvs.push_back(static_cast<float>(fbxUv[1]));
+                }
+            }
+        }
+
+        const int DeformerCount = pMesh->GetDeformerCount();
+#ifndef NDEBUG
+        std::cout << "....Loading Deformer...."
+            << "Deformer Count : " << DeformerCount << std::endl;
+#endif
+        std::vector<std::vector<BoneWeight>> controlPointIndexToBoneWeights(pMesh->GetControlPointsCount());
+        for (int i = 0; i < DeformerCount; ++i)
+        {
+            FbxDeformer* pDeformer = pMesh->GetDeformer(i);
+            FbxDeformer::EDeformerType type = pDeformer->GetDeformerType();
+#ifndef NDEBUG
+            std::cout << " Deformer Type : " << ToString(type) << std::endl;
+#endif
+            if (type == FbxDeformer::EDeformerType::eSkin || type == FbxDeformer::EDeformerType::eVertexCache)
+            {
+                FbxSkin* pSkin = FbxCast<FbxSkin>(pDeformer);
+                assert(pSkin != nullptr);
+                if (pSkin)
+                {
+                    int ClusterCount = pSkin->GetClusterCount();
+
+#ifndef NDEBUG
+                    std::cout << " Cluster Count : " << ClusterCount << std::endl;
+#endif
+                    for (int j = 0; j < ClusterCount; ++j)
                     {
-                        // Try to load the texture from absolute path
-                        const FbxString lFileName = lFileTexture->GetFileName();
+                        FbxCluster* pCluster = pSkin->GetCluster(j);
 
-                        GLuint lTextureObject = 0;
-                        bool lStatus = LoadTextureFromFile(lFileName, lTextureObject);
+                        FbxCluster::ELinkMode linkMode = pCluster->GetLinkMode();
 
-                        const FbxString lAbsFbxFileName = FbxPathUtils::Resolve(lFileName);
-                        const FbxString lAbsFolderName = FbxPathUtils::GetFolderName(lAbsFbxFileName);
-                        if (!lStatus)
-                        {
-                            // Load texture from relative file name (relative to FBX file)
-                            const FbxString lResolvedFileName = FbxPathUtils::Bind(lAbsFolderName, lFileTexture->GetRelativeFileName());
-                            lStatus = LoadTextureFromFile(lResolvedFileName, lTextureObject);
-                        }
+                        std::cout << " Link Mode : " << ToString(linkMode) << std::endl;
 
-                        if (!lStatus)
-                        {
-                            // Load texture from file name only (relative to FBX file)
-                            const FbxString lTextureFileName = FbxPathUtils::GetFileName(lFileName);
-                            const FbxString lResolvedFileName = FbxPathUtils::Bind(lAbsFolderName, lTextureFileName);
-                            lStatus = LoadTextureFromFile(lResolvedFileName, lTextureObject);
-                        }
+                        FbxNode* pLinkNode = pCluster->GetLink();
+                        assert(pLinkNode != nullptr);
 
-                        if (!lStatus)
-                        {
-                            FBXSDK_printf("Failed to load texture file: %s\n", lFileName.Buffer());
+                        std::string linkNodeName = pLinkNode->GetName();
+#ifndef NDEBUG
+                        std::cout << " !!Link Node : " << linkNodeName << std::endl;
+#endif
+                        int boneIndex = m_pSkeleton->FindBoneIndex(linkNodeName);
+                        if (boneIndex == Skeleton::DUMMY_PARENT_NODE_INDEX)
                             continue;
-                        }
 
-                        if (lStatus)
+                        Bone& bone = m_pSkeleton->GetBoneByIndex(boneIndex);
+                        FbxAMatrix clusterMatrix;
+                        pCluster->GetTransformMatrix(clusterMatrix);
+                        FbxAMatrix clusterLinkMatrix;
+                        pCluster->GetTransformLinkMatrix(clusterLinkMatrix);
+
+                        
+                        glm::mat4 glmClusterMatrix;
+                        glm::mat4 glmClusterLinkMatrix;
+                        
+                        FbxAMatrixToGlmMat4(clusterMatrix, glmClusterMatrix);
+                        FbxAMatrixToGlmMat4(clusterLinkMatrix, glmClusterLinkMatrix);
+                        bone.SetTransform(glmClusterMatrix);
+                        bone.SetLinkTransform(glmClusterLinkMatrix);
+
+                        std::cout << glmClusterMatrix << std::endl << glmClusterLinkMatrix << std::endl;
+
+                        int* pIndices = pCluster->GetControlPointIndices();
+                        double* pWeights = pCluster->GetControlPointWeights();
+
+                        const int ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
+                        std::cout << "Control Point Indices Count : " << ControlPointIndicesCount << std::endl;
+                        for (int k = 0; k < ControlPointIndicesCount; ++k)
                         {
-                            GLuint * lTextureName = new GLuint(lTextureObject);
-                            lFileTexture->SetUserDataPtr(lTextureName);
+                            int controlPointIndex = pIndices[k];
+                            double weight = pWeights[k];
+                            std::vector<BoneWeight>& boneWeights = controlPointIndexToBoneWeights[controlPointIndex];
+                            boneWeights.push_back(BoneWeight(boneIndex, static_cast<float>(weight)));
                         }
                     }
                 }
-                // Bake the scene for one frame
-                LoadRecursive(pScene->GetRootNode(), objectStack);
-
-                //// Convert any .PC2 point cache data into the .MC format for 
-                //// vertex cache deformer playback.
-                //PreparePointCacheData(mScene, mCache_Start, mCache_Stop);
-
-                // Get the list of pose in the scene
-                FillPoseArray(pScene, mPoseArray);
-
-                // Initialize the frame period.
-                mFrameTime.SetTime(0, 0, 0, 1, 0, pScene->GetGlobalSettings().GetTimeMode());
             }
+        }
+
+        for (int i = 0; i < PolygonCount; ++i)
+        {
+            for (int j = 0; j < TRIANGLE_VERTEX_COUNT; ++j)
+            {
+                int controlPointIndex = pMesh->GetPolygonVertex(i, j);
+                std::vector<BoneWeight>& boneWeights = controlPointIndexToBoneWeights[controlPointIndex];
+                const int CountWeights = std::min(static_cast<int>(boneWeights.size()), static_cast<int>(COMPONENT_COUNT_BONE));
+                for (int k = 0; k < CountWeights; ++k)
+                {
+                    int l = i * TRIANGLE_VERTEX_COUNT * COMPONENT_COUNT_BONE + j * COMPONENT_COUNT_BONE + k;
+                    boneIndices[l] = boneWeights[k].boneIndex;
+                    weights[l] = boneWeights[k].weight;
+                }
+            }
+        }
+
+        std::shared_ptr<Mesh> pMyMesh(new Mesh());
+        if (!submeshes.empty())
+        {
+            int begin = 0;
+            for (std::map<int, std::vector<int>>::iterator it = submeshes.begin(); it != submeshes.end(); ++it)
+            {
+                Mesh::SubMesh subMesh;
+                subMesh.begin = begin;
+                subMesh.vertCount = static_cast<int>(it->second.size() * TRIANGLE_VERTEX_COUNT);
+                pMyMesh->AddSubMesh(subMesh);
+                begin += subMesh.vertCount;
+            }
+        }
+        AttributeArray aaPositions(COMPONENT_COUNT_POSITION, GL_FLOAT, 0, 0);
+        aaPositions.Fill(positions.size() * sizeof(positions[0]), positions.data());
+        pMyMesh->AddAttributeArray(aaPositions);
+
+        AttributeArray aaUvs(COMPONENT_COUNT_UV, GL_FLOAT, 0, 0);
+        aaUvs.Fill(uvs.size() * sizeof(uvs[0]), uvs.data());
+        pMyMesh->AddAttributeArray(aaUvs);
+
+        AttributeArray aaNormals(COMPONENT_COUNT_NORMAL, GL_FLOAT, 0, 0);
+        aaNormals.Fill(normals.size() * sizeof(normals[0]), normals.data());
+        pMyMesh->AddAttributeArray(aaNormals);
+
+        AttributeArray aaBoneIndices(COMPONENT_COUNT_BONE, GL_INT, 0, 0);
+        aaBoneIndices.Fill(boneIndices.size() * sizeof(boneIndices[0]), boneIndices.data());
+        pMyMesh->AddAttributeArray(aaBoneIndices);
+
+        AttributeArray aaWeights(COMPONENT_COUNT_WEIGHT, GL_FLOAT, 0, 0);
+        aaWeights.Fill(weights.size() * sizeof(weights[0]), weights.data());
+        pMyMesh->AddAttributeArray(aaWeights);
+
+        m_meshes.push_back(pMyMesh);
+    });
+}
+
+void FbxLoader::LoadAnimation(FbxImporter* pImporter)
+{
+    assert(m_pScene != nullptr);
+
+    m_pAnimator.reset(new Animator);
+
+    // Animation name stack array
+    FbxArray<FbxString*> animArray;
+    FbxDocument* pDocument = dynamic_cast<FbxDocument*>(m_pScene);
+    if( pDocument != NULL )
+        pDocument->FillAnimStackNameArray(animArray);
+
+    std::cout << " Anim Stack Name Array ( Count : " << animArray.GetCount() << " ): " << std::endl;
+    for (int i = 0; i < animArray.GetCount(); ++i)
+    {
+        std::cout << i << " : " << animArray[i]->Buffer() << std::endl;
+
+        FbxTakeInfo* pTakeInfo = pImporter->GetTakeInfo(i);
+
+        FbxString animationName = pTakeInfo->mName;
+        
+        FbxTimeSpan span = pTakeInfo->mLocalTimeSpan;
+
+        double startTime = span.GetStart().GetSecondDouble();
+        double endTime = span.GetStop().GetSecondDouble();
+        
+        if (startTime < endTime)
+        {
+            std::shared_ptr<Animation> pAnimation(new Animation(animationName.Buffer()));
+            pAnimation->SetLength(static_cast<float>(endTime - startTime));
+            m_pAnimator->AddAnimation(pAnimation);
+
+            
+            const double FrameRate = 30.0;
+            std::vector<double> keyFrameTimes;
+            for (double time = 0.0; time < endTime; time += 1.0 / FrameRate)
+            {
+                keyFrameTimes.push_back(time);
+            }
+            std::vector<KeyFrame> keyFrames(keyFrameTimes.size());
+
+            // Generate KeyFrame
+            TraverseFbxNodeDepthFirst(m_pScene->GetRootNode(), [this, &keyFrames, endTime, &keyFrameTimes](FbxNode* pNode, int depth)
+            {
+                FbxNodeAttribute* pAttribute = pNode->GetNodeAttribute();
+                if (pAttribute == nullptr)
+                    return;
+                FbxNodeAttribute::EType attributeType = pAttribute->GetAttributeType();
+                if (attributeType == FbxNodeAttribute::EType::eSkeleton)
+                {
+                    const char* pBoneName = pNode->GetName();
+                    Bone& bone = m_pSkeleton->GetBone(pBoneName);
+                    
+                    for( int i = 0; i < keyFrameTimes.size(); ++i )
+                    {
+                        double keyFrameTime = keyFrameTimes[i];
+
+                        FbxTime animationTime;
+                        animationTime.SetSecondDouble(keyFrameTime);
+
+                        glm::mat4 localTransform;
+                        FbxAMatrixToGlmMat4(pNode->EvaluateLocalTransform(animationTime), localTransform);
+
+                        BoneTransform transform;
+                        glm::vec3 scale, skew;
+                        glm::vec4 perp;
+                        glm::decompose(localTransform, scale, transform.rotation, transform.position, skew, perp);
+                        keyFrames[i].AddPose(pBoneName, transform);
+                        keyFrames[i].SetTimestamp(static_cast<float>(keyFrameTime));
+                    }
+                }
+                else if (attributeType == FbxNodeAttribute::EType::eMesh)
+                {
+                    // Legacy animation
+                }
+            });
+
+            for( int i = 0; i < keyFrames.size(); ++i )
+                pAnimation->AddKeyFrame(keyFrames[i]);
+
+            m_animations.push_back(pAnimation);
         }
     }
 }

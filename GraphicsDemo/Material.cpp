@@ -15,35 +15,35 @@ namespace
     // Value = Property value * Factor property value (if no factor property, multiply by 1).
     FbxDouble3 GetMaterialProperty(const FbxSurfaceMaterial * pMaterial, const char * pPropertyName, const char * pFactorPropertyName, GLuint & pTextureName)
     {
-        FbxDouble3 lResult(0, 0, 0);
-        const FbxProperty lProperty = pMaterial->FindProperty(pPropertyName);
-        const FbxProperty lFactorProperty = pMaterial->FindProperty(pFactorPropertyName);
-        if (lProperty.IsValid() && lFactorProperty.IsValid())
+        FbxDouble3 result(0, 0, 0);
+        const FbxProperty prop = pMaterial->FindProperty(pPropertyName);
+        const FbxProperty factorProp = pMaterial->FindProperty(pFactorPropertyName);
+        if (prop.IsValid() && factorProp.IsValid())
         {
-            lResult = lProperty.Get<FbxDouble3>();
-            double lFactor = lFactorProperty.Get<FbxDouble>();
-            if (lFactor != 1)
+            result = prop.Get<FbxDouble3>();
+            double factor = factorProp.Get<FbxDouble>();
+            if (factor != 1)
             {
-                lResult[0] *= lFactor;
-                lResult[1] *= lFactor;
-                lResult[2] *= lFactor;
+                result[0] *= factor;
+                result[1] *= factor;
+                result[2] *= factor;
             }
         }
 
-        if (lProperty.IsValid())
+        if (prop.IsValid())
         {
-            const int lTextureCount = lProperty.GetSrcObjectCount<FbxFileTexture>();
-            if (lTextureCount)
+            const int TextureCount = prop.GetSrcObjectCount<FbxFileTexture>();
+            if (TextureCount)
             {
-                const FbxFileTexture* lTexture = lProperty.GetSrcObject<FbxFileTexture>();
-                if (lTexture && lTexture->GetUserDataPtr())
+                const FbxFileTexture* pTexture = prop.GetSrcObject<FbxFileTexture>();
+                if (pTexture && pTexture->GetUserDataPtr())
                 {
-                    pTextureName = *(static_cast<GLuint *>(lTexture->GetUserDataPtr()));
+                    pTextureName = *(static_cast<GLuint *>(pTexture->GetUserDataPtr()));
                 }
             }
         }
 
-        return lResult;
+        return result;
     }
 }
 
@@ -61,40 +61,57 @@ void Material::Free()
     if (m_ambient.map != 0)
     {
         glDeleteTextures(1, &m_ambient.map);
-        GET_AND_HANDLE_GL_ERROR();
         m_ambient.map = 0;
+    }
+
+    if (m_diffuse.map != 0)
+    {
+        glDeleteTextures(1, &m_diffuse.map);
+        m_ambient.map = 0;
+    }
+
+    if (m_specular.map != 0)
+    {
+        glDeleteTextures(1, &m_specular.map);
+        m_specular.map = 0;
+    }
+
+    if (m_emissive.map != 0)
+    {
+        glDeleteTextures(1, &m_emissive.map);
+        m_emissive.map = 0;
     }
 }
 
-bool Material::Initialize(const FbxSurfaceMaterial * pMaterial)
+bool Material::Initialize(const FbxSurfaceMaterial * pFbxMaterial)
 {
-    const FbxDouble3 lEmissive = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, m_emissive.map);
-    m_emissive.color[0] = static_cast<GLfloat>(lEmissive[0]);
-    m_emissive.color[1] = static_cast<GLfloat>(lEmissive[1]);
-    m_emissive.color[2] = static_cast<GLfloat>(lEmissive[2]);
+    const FbxDouble3 emissive = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, m_emissive.map);
+    m_emissive.color[0] = static_cast<GLfloat>(emissive[0]);
+    m_emissive.color[1] = static_cast<GLfloat>(emissive[1]);
+    m_emissive.color[2] = static_cast<GLfloat>(emissive[2]);
 
-    const FbxDouble3 lAmbient = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, m_ambient.map);
-    m_ambient.color[0] = static_cast<GLfloat>(lAmbient[0]);
-    m_ambient.color[1] = static_cast<GLfloat>(lAmbient[1]);
-    m_ambient.color[2] = static_cast<GLfloat>(lAmbient[2]);
+    const FbxDouble3 ambient = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, m_ambient.map);
+    m_ambient.color[0] = static_cast<GLfloat>(ambient[0]);
+    m_ambient.color[1] = static_cast<GLfloat>(ambient[1]);
+    m_ambient.color[2] = static_cast<GLfloat>(ambient[2]);
 
-    const FbxDouble3 lDiffuse = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sDiffuseFactor, m_diffuse.map);
-    m_diffuse.color[0] = static_cast<GLfloat>(lDiffuse[0]);
-    m_diffuse.color[1] = static_cast<GLfloat>(lDiffuse[1]);
-    m_diffuse.color[2] = static_cast<GLfloat>(lDiffuse[2]);
+    const FbxDouble3 diffuse = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sDiffuseFactor, m_diffuse.map);
+    m_diffuse.color[0] = static_cast<GLfloat>(diffuse[0]);
+    m_diffuse.color[1] = static_cast<GLfloat>(diffuse[1]);
+    m_diffuse.color[2] = static_cast<GLfloat>(diffuse[2]);
 
-    const FbxDouble3 lSpecular = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, m_specular.map);
-    m_specular.color[0] = static_cast<GLfloat>(lSpecular[0]);
-    m_specular.color[1] = static_cast<GLfloat>(lSpecular[1]);
-    m_specular.color[2] = static_cast<GLfloat>(lSpecular[2]);
+    const FbxDouble3 specular = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, m_specular.map);
+    m_specular.color[0] = static_cast<GLfloat>(specular[0]);
+    m_specular.color[1] = static_cast<GLfloat>(specular[1]);
+    m_specular.color[2] = static_cast<GLfloat>(specular[2]);
 
-    FbxProperty lShininessProperty = pMaterial->FindProperty(FbxSurfaceMaterial::sShininess);
-    if (lShininessProperty.IsValid())
+    FbxProperty shininess = pFbxMaterial->FindProperty(FbxSurfaceMaterial::sShininess);
+    if (shininess.IsValid())
     {
-        double lShininess = lShininessProperty.Get<FbxDouble>();
+        double lShininess = shininess.Get<FbxDouble>();
         m_shininess = static_cast<GLfloat>(lShininess);
     }
-
+    
     return true;
 }
 
