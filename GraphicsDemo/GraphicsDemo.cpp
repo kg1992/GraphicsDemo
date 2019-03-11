@@ -92,9 +92,19 @@ void GraphicsDemo::OnStart()
     // Dragon is facing downward after loaded. I'm rotating it to make it face forward. (+Z)
     // m_objects.back()->SetRotation(glm::angleAxis(glm::pi<float>()*-0.5f, glm::vec3(1, 0, 0)));
 
+    std::shared_ptr<Object> obj;
+
     loader.Load("./Resources/Punching Tri.fbx");
-    //loader.Load("./Resources/WiggleBox.fbx");
-    m_objects.push_back(loader.GetObjectByIndex(0));
+    obj = loader.GetObjectByIndex(0);
+    obj->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
+    m_objects.push_back(obj);
+
+    loader.Load("./Resources/Punching Knight.fbx");
+    obj = loader.GetObjectByIndex(0);
+    obj->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
+    obj->SetPosition(glm::vec3(20.0f, 0.0f, 0.0f));
+    m_objects.push_back(obj);
+    
 
     // AddGround();
 

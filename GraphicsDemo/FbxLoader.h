@@ -7,8 +7,8 @@
         FBX SDK 2019 - for FbxScene importing
         stb_image.h - for texture file loading
 */
-#include "Material.h"
 
+class Material;
 class Skeleton;
 class Bone;
 class Object;
@@ -22,12 +22,15 @@ public:
     FbxLoader();
     ~FbxLoader();
 
+    //
+    // Load an fbx file saved in given 'filename'
+    //
     void Load(const char* filename);
 
-    struct TextureCache
-    {
-        GLuint textureObject;
-    };
+    //
+    // Clearup states filled up by last call to 'FbxLoader::Load' method.
+    //
+    void Clear();
 
     std::shared_ptr<Object> GetObjectByIndex(int index)
     {
@@ -35,7 +38,14 @@ public:
     }
 
 private:
+    struct TextureCache
+    {
+        GLuint textureObject;
+    };
+
+    // FbxManager class instnace. according to the documentation, only one FbxManager is required for entire application lifetime.
     FbxManager* m_pFbxManager;
+    // Scene to be filled up by importing a fbx file.
     FbxScene* m_pScene;
     std::vector<TextureCache> m_textures;
     std::vector<std::shared_ptr<Material>> m_materials;
@@ -50,4 +60,5 @@ private:
     void LoadSkeleton();
     void LoadMesh();
     void LoadAnimation(FbxImporter* pImporter);
+    void WriteSceneHierarchyTo(std::ostream& os, int indentSize = 2);
 };

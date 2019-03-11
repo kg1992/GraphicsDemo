@@ -210,8 +210,10 @@
     <ClInclude Include="SystemComponent.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Animation.cpp" />
     <ClCompile Include="Animator.cpp" />
     <ClCompile Include="AttributeArray.cpp" />
+    <ClCompile Include="Bone.cpp" />
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="Common.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -233,6 +235,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="ShaderPrograms.cpp" />
+    <ClCompile Include="Skeleton.cpp" />
     <ClCompile Include="stb_image.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>

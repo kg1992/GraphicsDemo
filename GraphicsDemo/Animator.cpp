@@ -1,7 +1,21 @@
+/*
+    Animator.cpp
+
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
+    References :
+        - https://www.youtube.com/watch?v=f3Cr8Yx3GGA
+
+    Dependencies :
+        glm - vector, matrix representation
+
+    Animator class implementation.
+*/
 #include "Common.h"
 #include "Animator.h"
 #include "Object.h"
 #include "Skeleton.h"
+#include "Animation.h"
 
 Animator::Animator()
     : m_currentAnimation()
@@ -9,7 +23,14 @@ Animator::Animator()
 {
 }
 
-void Animator::AddAnimation(std::shared_ptr<Animation> pAnimation)
+std::shared_ptr<Animation> Animator::GetCurrentAnimation()
+{
+    return m_currentAnimation;
+}
+
+
+
+void Animator::SetCurrentAnimation(std::shared_ptr<Animation> pAnimation)
 {
     m_currentAnimation = pAnimation;
 }

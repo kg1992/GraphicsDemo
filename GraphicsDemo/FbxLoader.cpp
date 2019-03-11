@@ -6,6 +6,7 @@
     Dependencies:
         FBX SDK 2019 - for FbxScene importing
         stb_image.h - for texture file loading
+        glm - for vector, matrix representation
 
     Reference:
         FbxSdk 'ViewScene' Demo
@@ -16,11 +17,16 @@
             FbxSkin - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_skin.html
             FbxCluster - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_cluster.html
 
-    Todo:
-        Currently texture objects are saved in FbxNode UserDataPtr. Move it to somewhere else.
-
     Changes:
         190303 - Removed dependency on glm
+        190311 - Animation loading support
+
+    Todo:
+        Figure out what FbxCluster::ELinkMode does in FbxCluster
+        Figure out 'correct' way of finding bind pose transform
+        Add legacy animation support
+        Optimize FbxLoader::LoadAnimation method
+
 */
 #include "Common.h"
 #include "FbxLoader.h"
@@ -35,18 +41,6 @@
 #include "Bone.h"
 #include "Animation.h"
 #include "Animator.h"
-
-class AnimationKeyFrame
-{
-public:
-    AnimationKeyFrame()
-    {
-    }
-
-private:
-    glm::vec3 m_translation;
-    glm::quat m_rotation;
-};
 
 namespace
 {
@@ -263,13 +257,6 @@ FbxLoader::FbxLoader()
     //Load plugins from the executable directory (optional)
     FbxString lPath = FbxGetApplicationDirectory();
     m_pFbxManager->LoadPluginsDirectory(lPath.Buffer());
-
-    //Create an FBX scene. This object holds most objects imported/exported from/to files.
-    m_pScene = FbxScene::Create(m_pFbxManager, "");
-    if (!m_pScene)
-    {
-        std::cerr << "Error: Unable to create FBX scene!" << std::endl;
-    }
 }
 
 FbxLoader::~FbxLoader()
@@ -289,6 +276,15 @@ FbxLoader::~FbxLoader()
 
 void FbxLoader::Load(const char* filename)
 {
+    Clear();
+
+    //Create an FBX scene. This object holds most objects imported/exported from/to files.
+    m_pScene = FbxScene::Create(m_pFbxManager, "");
+    if (!m_pScene)
+    {
+        std::cerr << "Error: Unable to create FBX scene!" << std::endl;
+    }
+
     FbxImporter* pImporter;
 
     // Create the importer.
@@ -333,9 +329,10 @@ void FbxLoader::Load(const char* filename)
         FbxSystemUnit::cm.ConvertScene(m_pScene);
     }
 
-    //// Convert mesh, NURBS and patch into triangle mesh
-    //FbxGeometryConverter lGeomConverter(m_pFbxManager);
-    //lGeomConverter.Triangulate(m_pScene, /*replace*/true);
+    // Takes Too much time....
+    // Convert mesh, NURBS and patch into triangle mesh
+    FbxGeometryConverter lGeomConverter(m_pFbxManager);
+    lGeomConverter.Triangulate(m_pScene, /*replace*/true);
 
     LoadTextures();
 
@@ -370,6 +367,25 @@ void FbxLoader::Load(const char* filename)
     }
 
     m_objects.push_back(pObject);
+
+    pImporter->Destroy();
+}
+
+void FbxLoader::Clear()
+{
+    if (m_pScene)
+    {
+        m_pScene->Destroy();
+        m_pScene = nullptr;
+    }
+
+    m_textures.clear();
+    m_materials.clear();
+    m_objects.clear();
+    m_meshes.clear();
+    m_pSkeleton.reset();
+    m_animations.clear();
+    m_pAnimator.reset();
 }
 
 void FbxLoader::LoadTextures()
@@ -467,39 +483,25 @@ void FbxLoader::LoadSkeleton()
 
     TraverseFbxNodeDepthFirst(pRootNode, [this](FbxNode* pNode, int depth)
     {
-        const int IndentSize = 4;
-        const std::string Indent(depth * IndentSize, ' ');
-        const char* pNodeName = pNode->GetName();
         FbxNodeAttribute* pAttribute = pNode->GetNodeAttribute();
         FbxNodeAttribute::EType attributeType;
-        std::string strAttributeType;
-        // Attribute can be absent
-        if (pAttribute)
-        {
-            attributeType = pAttribute->GetAttributeType();
-            strAttributeType = ToString(attributeType);
-        }
         
-        std::cout << Indent << pNodeName << "(" << depth << ") - " << strAttributeType << std::endl;
+        // Attribute can be absent
+        if (!pAttribute)
+            return;
 
-        if (pAttribute && attributeType == FbxNodeAttribute::EType::eSkeleton)
+        attributeType = pAttribute->GetAttributeType();
+
+        if (attributeType == FbxNodeAttribute::EType::eSkeleton)
         {
             FbxSkeleton* pSkeleton = pNode->GetSkeleton();
 
             FbxNode* pParent = pNode->GetParent();
-            
-            //// display skeleton type
-            //FbxSkeleton::EType skeletonType = pSkeleton->GetSkeletonType();
-            //std::cout << Indent << "Skeleton Type : " << ToString(skeletonType) << std::endl;
-            //
-            //// Display limb node color
-            //FbxColor limbNodeColor = pSkeleton->GetLimbNodeColor();
-            //std::cout << Indent << "Limb Node Color : " << limbNodeColor << std::endl;
 
-            // Create and fill skeleton
             Bone bone;
+
             bone.SetName(pNode->GetName());
-            
+
             int parentIndex = m_pSkeleton->FindBoneIndex(pParent->GetName());
 
             bone.SetParent(parentIndex);
@@ -568,13 +570,74 @@ void FbxLoader::LoadMesh()
             }
         }
 
-        FbxStringList lUVNames;
-        pMesh->GetUVSetNames(lUVNames);
-        const char * lUVName = NULL;
-        const int uvCount = lUVNames.GetCount();
+        const int DeformerCount = pMesh->GetDeformerCount();
+#ifndef NDEBUG
+        std::cout << "....Loading Deformer...."
+            << "Deformer Count : " << DeformerCount << std::endl;
+#endif
+        std::vector<std::vector<BoneWeight>> controlPointIndexToBoneWeights(pMesh->GetControlPointsCount());
+        for (int i = 0; i < DeformerCount; ++i)
+        {
+            FbxDeformer* pDeformer = pMesh->GetDeformer(i);
+            FbxDeformer::EDeformerType type = pDeformer->GetDeformerType();
+#ifndef NDEBUG
+            std::cout << " Deformer Type : " << ToString(type) << std::endl;
+#endif
+            if (type == FbxDeformer::EDeformerType::eSkin || type == FbxDeformer::EDeformerType::eVertexCache)
+            {
+                FbxSkin* pSkin = FbxCast<FbxSkin>(pDeformer);
+                assert(pSkin != nullptr);
+                if (pSkin)
+                {
+                    int ClusterCount = pSkin->GetClusterCount();
+
+#ifndef NDEBUG
+                    std::cout << " Cluster Count : " << ClusterCount << std::endl;
+#endif
+                    for (int j = 0; j < ClusterCount; ++j)
+                    {
+                        FbxCluster* pCluster = pSkin->GetCluster(j);
+
+                        FbxNode* pLinkNode = pCluster->GetLink();
+                        assert(pLinkNode != nullptr);
+
+                        std::string linkNodeName = pLinkNode->GetName();
+                        int boneIndex = m_pSkeleton->FindBoneIndex(linkNodeName);
+                        if (boneIndex == Skeleton::DUMMY_PARENT_NODE_INDEX)
+                            continue;
+
+                        Bone& bone = m_pSkeleton->GetBoneByIndex(boneIndex);
+                        FbxAMatrix clusterMatrix;
+                        pCluster->GetTransformMatrix(clusterMatrix);
+                        FbxAMatrix clusterLinkMatrix;
+                        pCluster->GetTransformLinkMatrix(clusterLinkMatrix);
+
+                        bone.SetTransform(ToMat4(clusterMatrix));
+                        bone.SetLinkTransform(ToMat4(clusterLinkMatrix));
+
+                        int* pIndices = pCluster->GetControlPointIndices();
+                        double* pWeights = pCluster->GetControlPointWeights();
+
+                        const int ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
+                        for (int k = 0; k < ControlPointIndicesCount; ++k)
+                        {
+                            int controlPointIndex = pIndices[k];
+                            double weight = pWeights[k];
+                            std::vector<BoneWeight>& boneWeights = controlPointIndexToBoneWeights[controlPointIndex];
+                            boneWeights.push_back(BoneWeight(boneIndex, static_cast<float>(weight)));
+                        }
+                    }
+                }
+            }
+        }
+
+        FbxStringList uvNames;
+        pMesh->GetUVSetNames(uvNames);
+        const char * pUvName = NULL;
+        const int uvCount = uvNames.GetCount();
         if (uvCount)
         {
-            lUVName = lUVNames[0];
+            pUvName = uvNames[0];
         }
 
         const int PolygonVertexCount = pMesh->GetPolygonVertexCount();
@@ -608,86 +671,9 @@ void FbxLoader::LoadMesh()
 
                     FbxVector2 fbxUv;
                     bool unmapped;
-                    pMesh->GetPolygonVertexUV(i, j, lUVName, fbxUv, unmapped);
+                    pMesh->GetPolygonVertexUV(i, j, pUvName, fbxUv, unmapped);
                     uvs.push_back(static_cast<float>(fbxUv[0]));
                     uvs.push_back(static_cast<float>(fbxUv[1]));
-                }
-            }
-        }
-
-        const int DeformerCount = pMesh->GetDeformerCount();
-#ifndef NDEBUG
-        std::cout << "....Loading Deformer...."
-            << "Deformer Count : " << DeformerCount << std::endl;
-#endif
-        std::vector<std::vector<BoneWeight>> controlPointIndexToBoneWeights(pMesh->GetControlPointsCount());
-        for (int i = 0; i < DeformerCount; ++i)
-        {
-            FbxDeformer* pDeformer = pMesh->GetDeformer(i);
-            FbxDeformer::EDeformerType type = pDeformer->GetDeformerType();
-#ifndef NDEBUG
-            std::cout << " Deformer Type : " << ToString(type) << std::endl;
-#endif
-            if (type == FbxDeformer::EDeformerType::eSkin || type == FbxDeformer::EDeformerType::eVertexCache)
-            {
-                FbxSkin* pSkin = FbxCast<FbxSkin>(pDeformer);
-                assert(pSkin != nullptr);
-                if (pSkin)
-                {
-                    int ClusterCount = pSkin->GetClusterCount();
-
-#ifndef NDEBUG
-                    std::cout << " Cluster Count : " << ClusterCount << std::endl;
-#endif
-                    for (int j = 0; j < ClusterCount; ++j)
-                    {
-                        FbxCluster* pCluster = pSkin->GetCluster(j);
-
-                        FbxCluster::ELinkMode linkMode = pCluster->GetLinkMode();
-
-                        std::cout << " Link Mode : " << ToString(linkMode) << std::endl;
-
-                        FbxNode* pLinkNode = pCluster->GetLink();
-                        assert(pLinkNode != nullptr);
-
-                        std::string linkNodeName = pLinkNode->GetName();
-#ifndef NDEBUG
-                        std::cout << " !!Link Node : " << linkNodeName << std::endl;
-#endif
-                        int boneIndex = m_pSkeleton->FindBoneIndex(linkNodeName);
-                        if (boneIndex == Skeleton::DUMMY_PARENT_NODE_INDEX)
-                            continue;
-
-                        Bone& bone = m_pSkeleton->GetBoneByIndex(boneIndex);
-                        FbxAMatrix clusterMatrix;
-                        pCluster->GetTransformMatrix(clusterMatrix);
-                        FbxAMatrix clusterLinkMatrix;
-                        pCluster->GetTransformLinkMatrix(clusterLinkMatrix);
-
-                        
-                        glm::mat4 glmClusterMatrix;
-                        glm::mat4 glmClusterLinkMatrix;
-                        
-                        FbxAMatrixToGlmMat4(clusterMatrix, glmClusterMatrix);
-                        FbxAMatrixToGlmMat4(clusterLinkMatrix, glmClusterLinkMatrix);
-                        bone.SetTransform(glmClusterMatrix);
-                        bone.SetLinkTransform(glmClusterLinkMatrix);
-
-                        std::cout << glmClusterMatrix << std::endl << glmClusterLinkMatrix << std::endl;
-
-                        int* pIndices = pCluster->GetControlPointIndices();
-                        double* pWeights = pCluster->GetControlPointWeights();
-
-                        const int ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
-                        std::cout << "Control Point Indices Count : " << ControlPointIndicesCount << std::endl;
-                        for (int k = 0; k < ControlPointIndicesCount; ++k)
-                        {
-                            int controlPointIndex = pIndices[k];
-                            double weight = pWeights[k];
-                            std::vector<BoneWeight>& boneWeights = controlPointIndexToBoneWeights[controlPointIndex];
-                            boneWeights.push_back(BoneWeight(boneIndex, static_cast<float>(weight)));
-                        }
-                    }
                 }
             }
         }
@@ -775,7 +761,7 @@ void FbxLoader::LoadAnimation(FbxImporter* pImporter)
         {
             std::shared_ptr<Animation> pAnimation(new Animation(animationName.Buffer()));
             pAnimation->SetLength(static_cast<float>(endTime - startTime));
-            m_pAnimator->AddAnimation(pAnimation);
+            m_pAnimator->SetCurrentAnimation(pAnimation);
 
             
             const double FrameRate = 30.0;
@@ -828,4 +814,24 @@ void FbxLoader::LoadAnimation(FbxImporter* pImporter)
             m_animations.push_back(pAnimation);
         }
     }
+}
+
+void FbxLoader::WriteSceneHierarchyTo(std::ostream& os, int indentSize)
+{
+    TraverseFbxNodeDepthFirst(m_pScene->GetRootNode(), [this, indentSize](FbxNode* pNode, int depth)
+    {
+        const std::string Indent(depth * indentSize, ' ');
+        const char* pNodeName = pNode->GetName();
+        std::string strAttributeType;
+        FbxNodeAttribute* pAttribute = pNode->GetNodeAttribute();
+        if (pAttribute)
+        {
+            FbxNodeAttribute::EType attributeType = pAttribute->GetAttributeType();
+            strAttributeType = ToString(attributeType);
+        }
+
+#ifndef NDEBUG
+        std::cout << Indent << pNodeName << "(" << depth << ") - " << strAttributeType << std::endl;
+#endif
+    });
 }

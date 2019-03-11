@@ -1,3 +1,17 @@
+/*
+    Animation.h
+
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
+    References :
+        - https://www.youtube.com/watch?v=f3Cr8Yx3GGA
+
+    Dependencies :
+        glm - vector, matrix representation
+
+    BoneTransform struct definition.
+    KeyFrame, Animation class definition.
+*/
 #ifndef ANIMATION_H_
 #define ANIMATION_H_
 
@@ -50,60 +64,42 @@ private:
     std::map<std::string, BoneTransform> m_pose;
 };
 
+//
+// class Animation
+//
+// class 'Animation' represents a single shot of animation.
+// Animation is represented by multiple instances of 'KeyFrame' over timeline.
+// Internally class 'Animation' stores array of 'KeyFrame' in time ascending order.
+// Each 'KeyFrame' has timestamp set. To get time stamp of a KeyFrame, call KeyFarme::GetTimeStamp()
+//
 class Animation
 {
 public:
-    Animation(const std::string& name)
-        : m_name(name)
-    {
-    } 
+    Animation(const std::string& name);
 
-    void AddKeyFrame(KeyFrame keyFrame)
-    {
-        m_keyFrames.push_back(keyFrame);
-    }
+    const std::string& GetName();
 
-    KeyFrame* GetKeyFrameBefore(float timeStamp)
-    {
-        if (timeStamp > m_length)
-            return &m_keyFrames.back();
+    // Adds a keyframe.
+    // Todo : sort insert
+    void AddKeyFrame(KeyFrame keyFrame);
 
-        for( std::vector<KeyFrame>::reverse_iterator iter = m_keyFrames.rbegin(); iter != m_keyFrames.rend(); ++iter)
-        {
-            if (iter->GetTimeStamp() < timeStamp)
-            {
-                return &*iter;
-            }
-        }
+    // Gets the keyframe placed before the given 'timeStamp'
+    // If the 'timeStamp' went out of boundary of Animation length, it just returns the first or the last frame.
+    KeyFrame* GetKeyFrameBefore(float timeStamp);
 
-        return &m_keyFrames.front();
-    }
+    // Gets the keyframe placed after the given 'timeStamp'
+    // If the 'timeStamp' went out of boundary of Animation length, it just returns the first or the last frame.
+    KeyFrame* GetKeyFrameAfter(float timeStamp);
 
-    KeyFrame* GetKeyFrameAfter(float timeStamp)
-    {
-        for (KeyFrame& keyFrame : m_keyFrames)
-        {
-            if (keyFrame.GetTimeStamp() > timeStamp)
-            {
-                return &keyFrame;
-            }
-        }
-        return &m_keyFrames.back();
-    }
+    // Sets length of the animation in seconds
+    void SetLength(float length);
 
-    void SetLength(float length)
-    {
-        m_length = length;
-    }
-
-    float GetLength()
-    {
-        return m_length;
-    }
+    // Gets length of the animation in seconds
+    float GetLength();
 
 private:
-    std::vector<KeyFrame> m_keyFrames;
     std::string m_name;
+    std::vector<KeyFrame> m_keyFrames;
     float m_length;
 };
 

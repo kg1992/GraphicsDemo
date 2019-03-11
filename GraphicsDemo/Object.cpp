@@ -18,6 +18,7 @@
 namespace
 {
     const int MaximumBoneCount = 128;
+    const char* const JointTransformsUniformName = "jointTransforms[0]";
 
     void SendMaterial(ShaderProgram& program, Material& material)
     {
@@ -38,7 +39,7 @@ Object::Object()
     : m_position()
     , m_scale(1,1,1)
     , m_rotation(glm::identity<glm::quat>())
-    , m_mvMatrix(glm::identity<glm::mat4x4>())
+    , m_mwMatrix(glm::identity<glm::mat4x4>())
     , m_meshes()
 {
 }
@@ -82,20 +83,16 @@ void Object::SetTransformMatrix(const glm::mat4x4& transformMatrix)
     glm::vec3 skew;
     glm::vec4 proj;
     glm::decompose(transformMatrix, m_position, m_rotation, m_scale, skew, proj);
-    m_mvMatrix = transformMatrix;
-}
-
-void Object::ApplyTransformMatrix(const glm::mat4x4& transformMatrix)
-{
-    SetTransformMatrix(transformMatrix * m_mvMatrix);
+    m_mwMatrix = transformMatrix;
 }
 
 void Object::UpdateTransformMatrix()
 {
-    m_mvMatrix = glm::identity<glm::mat4x4>();
-    m_mvMatrix = glm::scale(m_mvMatrix, m_scale);
-    m_mvMatrix *= glm::toMat4(m_rotation);
-    m_mvMatrix = glm::translate(m_mvMatrix, m_position);
+    glm::mat4 i = glm::identity<glm::mat4x4>();
+    glm::mat4 s = glm::scale(glm::identity<glm::mat4x4>(), m_scale);
+    glm::mat4 r = glm::toMat4(m_rotation);
+    glm::mat4 t = glm::translate(glm::identity<glm::mat4x4>(), m_position);
+    m_mwMatrix = t * r * s;
 }
 
 void Object::Update()
@@ -108,12 +105,27 @@ void Object::Update()
 
 const glm::mat4x4& Object::GetTransformMatrix()
 {
-    return m_mvMatrix;
+    return m_mwMatrix;
 }
 
 void Object::AddMaterial(std::shared_ptr<Material> pMaterial)
 {
     m_materials.push_back(pMaterial);
+}
+
+std::shared_ptr<Material> Object::GetMaterial(int index)
+{
+    return m_materials[index];
+}
+
+void Object::AddMesh(std::shared_ptr<Mesh> mesh)
+{
+    m_meshes.push_back(mesh);
+}
+
+std::shared_ptr<Mesh> Object::GetMesh(int index)
+{
+    return m_meshes[index];
 }
 
 void Object::Free()
@@ -129,6 +141,10 @@ void Object::Free()
         m_meshes.back()->Free();
         m_meshes.pop_back();
     }
+
+    m_pAnimator.reset();
+
+    m_pSkeleton.reset();
 }
 
 void Object::Render(ShaderProgram& program)
@@ -147,7 +163,7 @@ void Object::Render(ShaderProgram& program)
             boneTransforms[i] = glm::identity<glm::mat4>();
         }
 
-        program.TrySendUniform("jointTransforms[0]", BoneCount, GL_FALSE, boneTransforms[0]);
+        program.TrySendUniform(JointTransformsUniformName, BoneCount, GL_FALSE, boneTransforms[0]);
     }
 
     for (auto& mesh : m_meshes)

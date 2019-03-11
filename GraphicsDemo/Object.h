@@ -34,51 +34,58 @@ public:
     
     void SetTransformMatrix(const glm::mat4x4& transformMatrix);
 
-    void ApplyTransformMatrix(const glm::mat4x4& transformMatrix);
-
-    void UpdateTransformMatrix();
-
+    //
+    // Must be called every frame.
+    // Updates animator.
+    //
     void Update();
 
+    // Gets the model to world transform matrix
     const glm::mat4x4& GetTransformMatrix();
 
+    // Adds a material.
     void AddMaterial(std::shared_ptr<Material> ptr);
 
-    std::shared_ptr<Material> GetMaterial(int index)
-    {
-        return m_materials[index];
-    }
+    // Gets 'index'th material
+    std::shared_ptr<Material> GetMaterial(int index);
 
-    void AddMesh(std::shared_ptr<Mesh> mesh)
-    {
-        m_meshes.push_back(mesh);
-    }
+    // Adds a mesh to be rendered.
+    void AddMesh(std::shared_ptr<Mesh> mesh);
 
-    std::shared_ptr<Mesh> GetMesh(int index)
-    {
-        return m_meshes[index];
-    }
+    // Gets 'index'th mesh
+    std::shared_ptr<Mesh> GetMesh(int index);
 
+    // Free object items
     void Free();
 
+    // Renders object with given program.
     void Render(ShaderProgram& program);
 
+    // Gets skeleton associated with this object.
     std::shared_ptr<Skeleton> GetSkeleton();
 
+    // Sets skeleton. the last set skeleton will be released.
     void SetSkeleton(std::shared_ptr<Skeleton> pSkeleton);    
     
+    // Sets animator. the last set animator will be released.
     void SetAnimator(std::shared_ptr<Animator> pAnimator);
 
 private:
     glm::vec3 m_position;
     glm::vec3 m_scale;
     glm::quat m_rotation;
-    glm::mat4x4 m_mvMatrix;
+    // model to world transform matrix
+    glm::mat4x4 m_mwMatrix;
 
     std::vector<std::shared_ptr<Mesh>> m_meshes;
     std::vector<std::shared_ptr<Material>> m_materials;
     std::shared_ptr<Skeleton> m_pSkeleton;
     std::shared_ptr<Animator> m_pAnimator;
+
+    //
+    // Updates Model-World Transform Matrix when position, scale, rotation has been changed.
+    //
+    void UpdateTransformMatrix();
 };
 
 #endif

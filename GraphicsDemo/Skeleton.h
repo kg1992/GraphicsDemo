@@ -1,3 +1,14 @@
+/*
+    Skeleton.h
+
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
+    References :
+        https://www.youtube.com/watch?v=f3Cr8Yx3GGA
+        https://www.youtube.com/channel/UCNm7HOHHI90oIc9SySfSqrw
+
+    Skeleton class definition
+*/
 #ifndef SKELETON_H_
 #define SKELETON_H_
 
@@ -7,58 +18,25 @@ class Skeleton
 {
 public:
     enum { DUMMY_PARENT_NODE_INDEX = -1 };
-    Skeleton()
-    {
-    }
-    ~Skeleton()
-    {
-    }
 
-    Bone& GetRootBone()
-    {
-        return m_bones[0];
-    }
+    Skeleton();
+    
+    Bone& GetRootBone();
 
     void AddBone(const Bone& bone)
     {
         m_bones.push_back(bone);
     }
 
-    Bone& GetBone(const char* name)
-    {
-        return *std::find_if(m_bones.begin(), m_bones.end(), [name](const Bone& bone)
-        {
-            return bone.GetName() == name;
-        });
-    }
+    Bone& GetBone(const char* name);
 
-    Bone& GetBoneByIndex(int index)
-    {
-        return m_bones[index];
-    }
+    Bone& GetBoneByIndex(int index);
 
-    int GetBoneCount()
-    {
-        return static_cast<int>(m_bones.size());
-    }
+    int GetBoneCount();
 
-    const int FindBoneIndex(const char* name)
-    {
-        std::vector<Bone>::iterator iter = std::find_if(m_bones.begin(), m_bones.end(), [name](const Bone& bone)
-        {
-            return bone.GetName() == name;
-        });
+    int FindBoneIndex(const char* name);
 
-        if (iter != m_bones.end())
-            return static_cast<int>(iter - m_bones.begin());
-        else
-            return DUMMY_PARENT_NODE_INDEX;
-    }
-
-    const int FindBoneIndex(const std::string& name)
-    {
-        return FindBoneIndex(name.c_str());
-    }
+    int FindBoneIndex(const std::string& name);
 
 private:
     std::vector<Bone> m_bones;
