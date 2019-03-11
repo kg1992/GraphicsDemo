@@ -124,14 +124,14 @@ vec3 blinnPhongModel( int lightIndex, vec3 position, vec3 n )
 	vec3 ambient =  ambientMapColor.rgb + material.ka * light[lightIndex].la;
 
 	vec4 diffuseMapColor = texture(material.diffuseMap, vUv);
-	vec3 diffuse = diffuseMapColor.rgb + material.kd * max(sDotN, 0);
+	vec3 diffuse = diffuseMapColor.rgb * max(sDotN, 0);
 
 	vec4 specularMapColor = texture(material.specularMap, vUv);
 	vec3 spec = vec3(0.0);
 	if( sDotN > 0 ){
 		vec3 v = normalize(-position); 
 		vec3 h = normalize(v + s);
-		spec = specularMapColor.rgb + material.ks * pow(max(dot(h, n), 0), material.shininess);
+		spec = specularMapColor.rgb * pow(max(dot(h, n), 0), material.shininess);
 	}
 
 	//return ambient + (diffuse) * light[lightIndex].l;
@@ -154,7 +154,8 @@ vec3 blinnPhongModelSpot( vec3 position, vec3 n )
 	{
 		spotScale = pow( cosAng, spot.exponent );
 		float sDotN = max( dot(s, n), 0.0 );
-		diffuse = material.kd * sDotN;
+		vec4 diffuseMapColor = texture(material.diffuseMap, vUv);
+		diffuse = diffuseMapColor.rgb * sDotN;
 		if( sDotN > 0.0 )
 		{
 			vec3 v = normalize(-position.xyz);

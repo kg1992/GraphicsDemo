@@ -200,7 +200,6 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="resource.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="ShaderPrograms.h" />
     <ClInclude Include="Singleton.h" />

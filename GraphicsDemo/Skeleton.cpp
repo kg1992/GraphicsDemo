@@ -10,6 +10,11 @@ Bone & Skeleton::GetRootBone()
     return m_bones[0];
 }
 
+void Skeleton::AddBone(const Bone & bone)
+{
+    m_bones.push_back(bone);
+}
+
 Bone & Skeleton::GetBone(const char * name)
 {
     return *std::find_if(m_bones.begin(), m_bones.end(), [name](const Bone& bone)

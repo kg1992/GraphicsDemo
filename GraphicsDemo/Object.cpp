@@ -23,14 +23,41 @@ namespace
     void SendMaterial(ShaderProgram& program, Material& material)
     {
         if (material.GetAmbientMap() != 0)
-            program.TrySendUniform("material.ambientMap", (int)material.GetAmbientMap());
-        program.TrySendUniform("material.ka", material.GetAmbientColor()[0], material.GetAmbientColor()[1], material.GetAmbientColor()[2]);
+        {
+            glActiveTexture(GL_TEXTURE0);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetAmbientMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.ambientMap", 0);
+        }
+        program.TrySendUniform("material.ka", glm::vec3(material.GetAmbientColor()));
+
         if (material.GetDiffuseMap() != 0)
-            program.TrySendUniform("material.diffuseMap", (int)material.GetDiffuseMap());
-        program.TrySendUniform("material.kd", material.GetDiffuseColor()[0], material.GetDiffuseColor()[1], material.GetDiffuseColor()[2]);
+        {
+            glActiveTexture(GL_TEXTURE1);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetDiffuseMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.diffuseMap", 1);
+        }
+        program.TrySendUniform("material.kd", glm::vec3(material.GetDiffuseColor()));
+
         if (material.GetSpecularMap() != 0)
-            program.TrySendUniform("material.specularMap", (int)material.GetSpecularMap());
-        program.TrySendUniform("material.ks", material.GetSpecularColor()[0], material.GetSpecularColor()[1], material.GetSpecularColor()[2]);
+        {
+            glActiveTexture(GL_TEXTURE2);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetSpecularMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.specularMap", 2);
+        }
+        program.TrySendUniform("material.ks", material.GetSpecularColor());
+
         program.TrySendUniform("material.shininess", material.GetShininess());
     }
 }

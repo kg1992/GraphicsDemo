@@ -233,6 +233,14 @@ namespace
             [](double d) { return static_cast<float>(d); });
         return dest;
     }
+
+    glm::vec3 ToVec3(const FbxDouble3& src)
+    {
+        return glm::vec3(static_cast<float>(src[0]),
+            static_cast<float>(src[1]),
+            static_cast<float>(src[2]));
+    }
+
 }
 
 FbxLoader::FbxLoader()
@@ -247,7 +255,7 @@ FbxLoader::FbxLoader()
     }
     else
     {
-        std::cout << "Autodesk FBX SDK version %s\n" << m_pFbxManager->GetVersion() << std::endl;
+        std::cout << "Autodesk FBX SDK version : " << m_pFbxManager->GetVersion() << std::endl;
     }
 
     //Create an IOSettings object. This object holds all import/export settings.
@@ -399,25 +407,25 @@ void FbxLoader::LoadTextures()
         FbxFileTexture * pFileTexture = FbxCast<FbxFileTexture>(pTexture);
         if (pFileTexture)
         {
-            // Try to load the texture from absolute path
-            const FbxString fileName = pFileTexture->GetFileName();
+            const FbxString Filename = pFileTexture->GetFileName();
+            const FbxString AbsoluteFileName = FbxPathUtils::Resolve(Filename);
+            const FbxString AbsoluteFolderName = FbxPathUtils::GetFolderName(AbsoluteFileName);
+
+            FbxString resolvedName = Filename;
 
 #ifndef NDEBUG
-            std::cout << "Loading Texture at index " << ti << ": " << fileName << std::endl;
+            std::cout << "Loading Texture at index " << ti << ": " << Filename << std::endl;
 #endif
-
             GLuint textureObject = 0;
-            bool success = LoadTextureFromFile(fileName, textureObject);
+            bool success = LoadTextureFromFile(resolvedName, textureObject);
 
-            const FbxString absoluteFileName = FbxPathUtils::Resolve(fileName);
-            const FbxString absoluteFolderName = FbxPathUtils::GetFolderName(absoluteFileName);
             if (!success)
             {
 #ifndef NDEBUG
                 std::cout << "Load texture from relative file name (relative to FBX file)" << std::endl;
 #endif
-                const FbxString resolvedFileName = FbxPathUtils::Bind(absoluteFolderName, pFileTexture->GetRelativeFileName());
-                success = LoadTextureFromFile(resolvedFileName, textureObject);
+                resolvedName = FbxPathUtils::Bind(AbsoluteFolderName, pFileTexture->GetRelativeFileName());
+                success = LoadTextureFromFile(resolvedName, textureObject);
             }
 
             if (!success)
@@ -425,22 +433,22 @@ void FbxLoader::LoadTextures()
 #ifndef NDEBUG
                 std::cout << "Load texture from file name only (relative to FBX file)" << std::endl;
 #endif
-                const FbxString textureFileName = FbxPathUtils::GetFileName(fileName);
-                const FbxString resolvedFileName = FbxPathUtils::Bind(absoluteFolderName, textureFileName);
-                success = LoadTextureFromFile(resolvedFileName, textureObject);
+                const FbxString textureFileName = FbxPathUtils::GetFileName(Filename);
+                const FbxString loadName = FbxPathUtils::Bind(AbsoluteFolderName, textureFileName);
+                success = LoadTextureFromFile(loadName, textureObject);
             }
 
             if (!success)
             {
-                std::cerr << "Failed to load texture file: " << fileName << std::endl;
+                std::cerr << "Failed to load texture file: " << Filename << std::endl;
                 continue;
             }
             
             assert(success);
             if (success)
             {
-                GLuint * lTextureName = new GLuint(textureObject);
-                pFileTexture->SetUserDataPtr(lTextureName);
+                TextureCache textureCache(std::string(Filename), std::string(resolvedName.Buffer()), textureObject);
+                m_textures.push_back(textureCache);
             }
         }
     }
@@ -467,7 +475,7 @@ void FbxLoader::LoadMaterial()
 
         std::shared_ptr<Material> pMaterial(new Material());
 
-        pMaterial->Initialize(pFbxMaterial);
+        InitializeMaterial(pFbxMaterial, &*pMaterial);
 
         m_materials.push_back(pMaterial);
     }
@@ -834,4 +842,81 @@ void FbxLoader::WriteSceneHierarchyTo(std::ostream& os, int indentSize)
         std::cout << Indent << pNodeName << "(" << depth << ") - " << strAttributeType << std::endl;
 #endif
     });
+}
+
+void FbxLoader::InitializeMaterial(const FbxSurfaceMaterial* pFbxMaterial, Material* pMaterial)
+{
+    GLuint textureObject;
+    FbxDouble3 color;
+    
+    color = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, textureObject);
+    pMaterial->SetEmissiveColor(glm::vec4(ToVec3(color), 1.0f));
+    pMaterial->SetEmissiveMap(textureObject);
+
+    color = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, textureObject);
+    pMaterial->SetAmbientColor(glm::vec4(ToVec3(color), 1.0f));
+    pMaterial->SetAmbientMap(textureObject);
+
+    color = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sDiffuseFactor, textureObject);
+    pMaterial->SetDiffuseColor(glm::vec4(ToVec3(color), 1.0f));
+    pMaterial->SetDiffuseMap(textureObject);
+
+    color = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, textureObject);
+    pMaterial->SetSpecularColor(glm::vec4(ToVec3(color), 1.0f));
+    pMaterial->SetSpecularMap(textureObject);
+    
+    FbxProperty shininess = pFbxMaterial->FindProperty(FbxSurfaceMaterial::sShininess);
+    if (shininess.IsValid())
+    {
+        double lShininess = shininess.Get<FbxDouble>();
+        pMaterial->SetShininess(static_cast<GLfloat>(lShininess));
+    }
+}
+
+int FbxLoader::FindIndexOfTextureCache(const std::string& filename)
+{
+    for (int i = 0; i < m_textures.size(); ++i)
+    {
+        if (m_textures[i].filename == filename)
+            return i;
+    }
+    return -1;
+}
+
+FbxDouble3 FbxLoader::GetMaterialProperty(const FbxSurfaceMaterial * pMaterial, const char * pPropertyName, const char * pFactorPropertyName, GLuint& textureName)
+{
+    textureName = 0;
+
+    FbxDouble3 result(0, 0, 0);
+    const FbxProperty prop = pMaterial->FindProperty(pPropertyName);
+    const FbxProperty factorProp = pMaterial->FindProperty(pFactorPropertyName);
+    if (prop.IsValid() && factorProp.IsValid())
+    {
+        result = prop.Get<FbxDouble3>();
+        double factor = factorProp.Get<FbxDouble>();
+        if (factor != 1)
+        {
+            result[0] *= factor;
+            result[1] *= factor;
+            result[2] *= factor;
+        }
+    }
+
+    if (prop.IsValid())
+    {
+        const int TextureCount = prop.GetSrcObjectCount<FbxFileTexture>();
+        if (TextureCount)
+        {
+            const FbxFileTexture* pTexture = prop.GetSrcObject<FbxFileTexture>();
+            if (pTexture)
+            {
+                const char* fileName = pTexture->GetFileName();
+                int index = FindIndexOfTextureCache(fileName);
+                if (index != -1)
+                    textureName = m_textures[index].textureObject;
+            }
+        }
+    }
+
+    return result;
 }

@@ -40,6 +40,20 @@ public:
 private:
     struct TextureCache
     {
+        TextureCache( const std::string& filename, const std::string& resolvedFilename, GLuint textureObject)
+            : filename(filename)
+            , resolvedFilename(resolvedFilename)
+            , textureObject(textureObject)
+        {
+            
+        }
+
+        // 'filename' is the path given by fbx file.
+        std::string filename;
+        // FbxLoader will attempt to resolve the filename that is given by fbx file when it fails to load.
+        // 'resolvedFilename' will be initialized with resolved path that actually worked to load the file.
+        std::string resolvedFilename;
+        // OpenGL texture object.
         GLuint textureObject;
     };
 
@@ -61,4 +75,11 @@ private:
     void LoadMesh();
     void LoadAnimation(FbxImporter* pImporter);
     void WriteSceneHierarchyTo(std::ostream& os, int indentSize = 2);
+
+    // Use 'FbxSurfaceMaterial' to initialize 'Material'
+    void InitializeMaterial(const FbxSurfaceMaterial* pFbxMaterial, Material* pMaterial);
+    int FindIndexOfTextureCache(const std::string& filename);
+    // Get specific property value and connected texture if any.
+    // Value = Property value * Factor property value (if no factor property, multiply by 1).
+    FbxDouble3 GetMaterialProperty(const FbxSurfaceMaterial * pMaterial, const char * pPropertyName, const char * pFactorPropertyName, GLuint & pTextureName);
 };

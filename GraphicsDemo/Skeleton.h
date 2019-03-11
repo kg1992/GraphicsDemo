@@ -23,10 +23,7 @@ public:
     
     Bone& GetRootBone();
 
-    void AddBone(const Bone& bone)
-    {
-        m_bones.push_back(bone);
-    }
+    void AddBone(const Bone& bone);
 
     Bone& GetBone(const char* name);
 
