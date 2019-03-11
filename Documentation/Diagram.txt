@@ -1,7 +1,7 @@
 @startuml
 
 class System
-class SystemComponent
+abstract class SystemComponent
 class GraphicsDemo
 class Material
 class Object
@@ -20,24 +20,25 @@ class Animation
 class KeyFrame
 class BoneTransform
 
-System o--> SystemComponent
+System o--> "*" SystemComponent
 SystemComponent <|-- GraphicsDemo
-GraphicsDemo o--> Object
-GraphicsDemo o--> Camera
-GraphicsDemo o--> PointLight
-GraphicsDemo o--> SpotLight
+GraphicsDemo o--> "*" Object
+GraphicsDemo *--> "1" Camera
+GraphicsDemo *--> "5" PointLight
+GraphicsDemo *--> "1" SpotLight
 
 ShaderPrograms o--> ShaderProgram
 
-Object o--> Animator
-Object o--> Material
-Object o--> Mesh
-Object o--> Skeleton
+Object o--> "1" Animator
+Object o--> "*" Material
+Object o--> "*" Mesh
+Object o--> "1" Skeleton
 
-Mesh o--> AttributeArray
+Mesh o--> "*" AttributeArray
 
-Animator o--> Animation
-Animation o--> KeyFrame
-KeyFrame o--> BoneTransform
-Skeleton o--> Bone
+Animator o--> "1" Animation
+Animation o--> "*" KeyFrame
+KeyFrame o--> "*" BoneTransform
+Skeleton o--> "*" Bone
+
 @enduml

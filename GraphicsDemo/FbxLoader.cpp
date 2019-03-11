@@ -16,6 +16,7 @@
             FbxDeformer - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_deformer.html
             FbxSkin - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_skin.html
             FbxCluster - http://help.autodesk.com/cloudhelp/2018/ENU/FBX-Developer-Help/cpp_ref/class_fbx_cluster.html
+        How to work with fbx sdk - https://www.gamedev.net/articles/programming/graphics/how-to-work-with-fbx-sdk-r3582
 
     Changes:
         190303 - Removed dependency on glm
@@ -53,7 +54,8 @@ namespace
         COMPONENT_COUNT_UV = 2,
         COMPONENT_COUNT_NORMAL = 3,
         COMPONENT_COUNT_BONE = 3,
-        COMPONENT_COUNT_WEIGHT = 3
+        COMPONENT_COUNT_WEIGHT = 3,
+        COMPONENT_COUNT_TANGENT = 3,
     };
     
     void TraverseFbxNodeDepthFirst(FbxNode* pNode, std::function<void(FbxNode* node, int depth)> delegator, int depth = 0)
@@ -193,6 +195,20 @@ namespace
         case FbxCluster::ELinkMode::eNormalize:return "eNormalize";
         case FbxCluster::ELinkMode::eAdditive:return "eAdditive";
         case FbxCluster::ELinkMode::eTotalOne:return "eTotalOne";
+        }
+        return Invalid;
+    }
+
+    const char* ToString(FbxLayerElement::EMappingMode mappingMode)
+    {
+        switch (mappingMode)
+        {
+        case FbxLayerElement::EMappingMode::eNone: return "eNone";
+        case FbxLayerElement::EMappingMode::eByControlPoint: return "eByControlPoint";
+        case FbxLayerElement::EMappingMode::eByPolygonVertex: return "eByPolygonVertex";
+        case FbxLayerElement::EMappingMode::eByPolygon: return "eByPolygon";
+        case FbxLayerElement::EMappingMode::eByEdge: return "eByEdge";
+        case FbxLayerElement::EMappingMode::eAllSame: return "eAllSam";
         }
         return Invalid;
     }
@@ -864,6 +880,22 @@ void FbxLoader::InitializeMaterial(const FbxSurfaceMaterial* pFbxMaterial, Mater
     color = GetMaterialProperty(pFbxMaterial, FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, textureObject);
     pMaterial->SetSpecularColor(glm::vec4(ToVec3(color), 1.0f));
     pMaterial->SetSpecularMap(textureObject);
+
+    const FbxProperty propNormalMap = pFbxMaterial->FindProperty(FbxSurfaceMaterial::sNormalMap);
+    int SourceObjectCount = propNormalMap.GetSrcObjectCount();
+    if (SourceObjectCount)
+    {
+        FbxFileTexture* pNormalMapTexture = propNormalMap.GetSrcObject<FbxFileTexture>();
+        if (pNormalMapTexture)
+        {
+            int index = FindIndexOfTextureCache(pNormalMapTexture->GetFileName());
+            if (index != -1)
+            {
+                pMaterial->SetNormalMap(m_textures[index].textureObject);
+            }
+        }
+    }
+    
     
     FbxProperty shininess = pFbxMaterial->FindProperty(FbxSurfaceMaterial::sShininess);
     if (shininess.IsValid())
