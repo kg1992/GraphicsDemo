@@ -13,7 +13,6 @@
 class ShaderPrograms
 {
 public:
-    static ShaderProgram s_basic;
     static ShaderProgram s_position;
     static ShaderProgram s_uv;
     static ShaderProgram s_normal;
@@ -21,6 +20,7 @@ public:
     static ShaderProgram s_pointLight;
     static ShaderProgram s_phong;
     static ShaderProgram s_axes;
+    static ShaderProgram s_tangent;
 
     static void Init();
 };

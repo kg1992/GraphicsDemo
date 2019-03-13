@@ -8,13 +8,15 @@
 */
 #version 430 core
 
+const int LightCount = 1;
+
 in vec2 vUv;
 in vec3 vEyePosition;
 in vec3 vNormal;
+in vec3 vTangentLights[LightCount];
+in vec3 vTangentViewDir;
 
 layout( location = 0 ) out vec4 FragColor;
-
-const int LightCount = 1;
 
 uniform struct LightInfo
 {
@@ -41,22 +43,28 @@ uniform struct MaterialInfo
 	vec3 ks;
 	sampler2D specularMap;
 	float shininess;
+	sampler2D normalMap;
 } material;
 
 vec3 phongModel( int lightIndex, vec3 position, vec3 n );
 vec3 blinnPhongModel( int lightIndex, vec3 position, vec3 n );
 vec3 blinnPhongModelSpot( vec3 position, vec3 n );
+vec3 blinnPhongNormal( vec3 n );
 
 void main(void)
 {
 	vec3 color;
-	vec3 vNormalizedNormal = vNormal;
-	for( int i = 0; i < LightCount; ++i )
-	{
-		color += blinnPhongModel(i, vEyePosition, vNormalizedNormal);
-	}
-	color += blinnPhongModelSpot(vEyePosition, vNormalizedNormal);
-	FragColor = vec4(color,1);
+//	vec3 vNormalizedNormal = vNormal;
+//	for( int i = 0; i < LightCount; ++i )
+//	{
+//		color += blinnPhongModel(i, vEyePosition, vNormalizedNormal);
+//	}
+//	color += blinnPhongModelSpot(vEyePosition, vNormalizedNormal);
+
+	vec3 norm = texture(material.normalMap, vUv).xyz;
+    norm.xy = 2.0 * norm.xy - 1.0;
+	color = blinnPhongNormal(norm);
+    FragColor = vec4( color, 1.0 );
 }
 
 /*
@@ -166,4 +174,22 @@ vec3 blinnPhongModelSpot( vec3 position, vec3 n )
 	}
 
 	return ambient + spotScale * spot.l * (diffuse + spec);
+}
+
+vec3 blinnPhongNormal( vec3 n ) {  
+  vec3 texColor = texture(material.diffuseMap, vUv).rgb;
+
+  vec3 ambient = light[0].la * texColor;
+  vec3 s = normalize( vTangentLights[0] );
+  float sDotN = max( dot(s,n), 0.0 );
+  vec3 diffuse = texColor * sDotN;
+  
+  vec3 spec = vec3(0.0);
+  if( sDotN > 0.0 ) {
+    vec3 v = normalize(vTangentViewDir);
+    vec3 h = normalize( v + s );
+    spec = material.ks *
+            pow( max( dot(h,n), 0.0 ), material.shininess );
+  }
+  return ambient + light[0].l * (diffuse + spec);
 }

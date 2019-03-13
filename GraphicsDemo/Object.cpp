@@ -59,6 +59,17 @@ namespace
         program.TrySendUniform("material.ks", material.GetSpecularColor());
 
         program.TrySendUniform("material.shininess", material.GetShininess());
+
+        if (material.GetNormalMap() != 0)
+        {
+            glActiveTexture(GL_TEXTURE3);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetNormalMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.normalMap", 3);
+        }
     }
 }
 

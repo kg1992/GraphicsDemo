@@ -99,25 +99,26 @@ void GraphicsDemo::OnStart()
     // Punching Knight
     loader.Load("./Resources/Punching Knight.fbx");
     obj = loader.GetObjectByIndex(0);
-    obj->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
+    // obj->SetScale(glm::vec3(1.0f, 1.0f, 1.0f));
+    obj->GetMaterial(0)->SetSpecularColor(1.0f, 0.0f, 0.0f);
     m_objects.push_back(obj);
 
     // Add ground
-    AddGround();
+    // AddGround();
 
-    // Renderer
-    s_fontRenderer.SetFont("fonts/times.ttf");
-    s_fontRenderer.SetScreenOrigin(.0f, .0f);
-    s_fontRenderer.SetScreenSize(static_cast<float>(m_clientWidth), static_cast<float>(m_clientHeight));
+    // // Renderer
+    // s_fontRenderer.SetFont("fonts/times.ttf");
+    // s_fontRenderer.SetScreenOrigin(.0f, .0f);
+    // s_fontRenderer.SetScreenSize(static_cast<float>(m_clientWidth), static_cast<float>(m_clientHeight));
 }
 
 void GraphicsDemo::Update(float dt)
 {
-    float time = System::Instance()->CurrentTime();
-    float radius = 25.0f;
-    float x = 0;// cosf(time) * radius;
-    float y = (sinf(time) + 1) * radius;
-    float z = 0;// sinf(time) * radius;
+    float time = System::Instance()->CurrentTime() * 0.25f;
+    float radius = 100.f;
+    float x = cosf(time) * radius;
+    float y = 150.f;
+    float z = sinf(time) * radius;
     m_pointLights[0].position = glm::vec4(x, y, z, 1.0f);
 
     //////////
@@ -360,7 +361,8 @@ void GraphicsDemo::DrawPeekViewports()
     int peekViewHeight = m_clientHeight / 8;
     ShaderProgram programs[] = { ShaderPrograms::s_position,
                                  ShaderPrograms::s_uv,
-                                 ShaderPrograms::s_normal };
+                                 ShaderPrograms::s_normal,
+                                 ShaderPrograms::s_tangent};
     for (int i = 0; i < _countof(programs); ++i)
     {
         glViewport(peekViewWidth * i, 0, peekViewWidth, peekViewHeight);
@@ -406,7 +408,7 @@ void GraphicsDemo::PrepareLights()
     PointLight pl;
 
     m_pointLights[0].la = glm::vec3(0.1f, 0.1f, 0.1f);
-    m_pointLights[0].ld = glm::vec3(0.8f, 0.8f, 0.8f);
+    m_pointLights[0].ld = glm::vec3(1.0f, 1.0f, 1.0f);
     m_pointLights[0].ls = glm::vec3(1.0f, 1.0f, 1.0f);
 
     m_pointLights.push_back(pl);
@@ -441,15 +443,15 @@ void GraphicsDemo::SendSpotLight(ShaderProgram& program, SpotLight& spotLight)
 { 
     glm::mat4 viewMatrix = m_camera.EyeMatrix();
     glm::vec3 position = viewMatrix * glm::vec4(spotLight.GetPosition(), 1);
-    program.SendUniform("spot.position", position);
-    program.SendUniform("spot.l", spotLight.GetDiffuse());
-    program.SendUniform("spot.la", spotLight.GetAmbient());
+    program.TrySendUniform("spot.position", position);
+    program.TrySendUniform("spot.l", spotLight.GetDiffuse());
+    program.TrySendUniform("spot.la", spotLight.GetAmbient());
     
     glm::mat3 normalMatrix = glm::mat3(glm::vec3(viewMatrix[0]), glm::vec3(viewMatrix[1]), glm::vec3(viewMatrix[2]));
     glm::vec3 direction = normalMatrix * spotLight.GetDirection();
-    program.SendUniform("spot.direction", direction);
-    program.SendUniform("spot.exponent", spotLight.GetExponent());
-    program.SendUniform("spot.cutoff", spotLight.GetCutoff());
+    program.TrySendUniform("spot.direction", direction);
+    program.TrySendUniform("spot.exponent", spotLight.GetExponent());
+    program.TrySendUniform("spot.cutoff", spotLight.GetCutoff());
 }
 
 void GraphicsDemo::SendLights(ShaderProgram& program, int count)

@@ -55,7 +55,7 @@ namespace
         COMPONENT_COUNT_NORMAL = 3,
         COMPONENT_COUNT_BONE = 3,
         COMPONENT_COUNT_WEIGHT = 3,
-        COMPONENT_COUNT_TANGENT = 3,
+        COMPONENT_COUNT_TANGENT = 4,
     };
     
     void TraverseFbxNodeDepthFirst(FbxNode* pNode, std::function<void(FbxNode* node, int depth)> delegator, int depth = 0)
@@ -555,24 +555,13 @@ void FbxLoader::LoadMesh()
         // Sub meshes. One submesh per material.
         std::map<int, std::vector<int>> submeshes;
 
-
-        const int MaterialCount = pNode->GetMaterialCount();
-        for (int mi = 0; mi < MaterialCount; ++mi)
-        {
-            FbxSurfaceMaterial * pMaterial = pNode->GetMaterial(mi);
-            if (pMaterial)
-            {
-                std::cout << pMaterial->GetName() << std::endl;
-            }
-        }
-
-        FbxMesh* pMesh = pNode->GetMesh();
-        const int PolygonCount = pMesh->GetPolygonCount();
-        const int ElementMaterialCount = pMesh->GetElementMaterialCount();
+        FbxMesh* pFbxMesh = pNode->GetMesh();
+        const int PolygonCount = pFbxMesh->GetPolygonCount();
+        const int ElementMaterialCount = pFbxMesh->GetElementMaterialCount();
         FbxLayerElementArrayTemplate<int>* materialIndices;
-        pMesh->GetMaterialIndices(&materialIndices);
-        FbxGeometryElement::EMappingMode mappingMode = pMesh->GetElementMaterial()->GetMappingMode();
-        FbxGeometryElement::EReferenceMode referenceMode = pMesh->GetElementMaterial()->GetReferenceMode();
+        pFbxMesh->GetMaterialIndices(&materialIndices);
+        FbxGeometryElement::EMappingMode mappingMode = pFbxMesh->GetElementMaterial()->GetMappingMode();
+        FbxGeometryElement::EReferenceMode referenceMode = pFbxMesh->GetElementMaterial()->GetReferenceMode();
         if (materialIndices)
         {
             if (mappingMode == FbxGeometryElement::eByPolygon)
@@ -594,15 +583,15 @@ void FbxLoader::LoadMesh()
             }
         }
 
-        const int DeformerCount = pMesh->GetDeformerCount();
+        const int DeformerCount = pFbxMesh->GetDeformerCount();
 #ifndef NDEBUG
         std::cout << "....Loading Deformer...."
             << "Deformer Count : " << DeformerCount << std::endl;
 #endif
-        std::vector<std::vector<BoneWeight>> controlPointIndexToBoneWeights(pMesh->GetControlPointsCount());
+        std::vector<std::vector<BoneWeight>> controlPointIndexToBoneWeights(pFbxMesh->GetControlPointsCount());
         for (int i = 0; i < DeformerCount; ++i)
         {
-            FbxDeformer* pDeformer = pMesh->GetDeformer(i);
+            FbxDeformer* pDeformer = pFbxMesh->GetDeformer(i);
             FbxDeformer::EDeformerType type = pDeformer->GetDeformerType();
 #ifndef NDEBUG
             std::cout << " Deformer Type : " << ToString(type) << std::endl;
@@ -656,7 +645,7 @@ void FbxLoader::LoadMesh()
         }
 
         FbxStringList uvNames;
-        pMesh->GetUVSetNames(uvNames);
+        pFbxMesh->GetUVSetNames(uvNames);
         const char * pUvName = NULL;
         const int uvCount = uvNames.GetCount();
         if (uvCount)
@@ -664,56 +653,107 @@ void FbxLoader::LoadMesh()
             pUvName = uvNames[0];
         }
 
-        const int PolygonVertexCount = pMesh->GetPolygonVertexCount();
-        std::vector<float> positions;
-        positions.reserve(PolygonVertexCount * COMPONENT_COUNT_POSITION);
-        std::vector<float> normals;
-        normals.reserve(PolygonVertexCount * COMPONENT_COUNT_NORMAL);
-        std::vector<float> uvs;
-        uvs.reserve(PolygonVertexCount * COMPONENT_COUNT_UV);
-        std::vector<int> boneIndices(PolygonVertexCount * COMPONENT_COUNT_BONE);
-        std::vector<float> weights(PolygonVertexCount * COMPONENT_COUNT_WEIGHT);
+        const int PolygonVertexCount = pFbxMesh->GetPolygonVertexCount();
+        std::vector<float> positions; positions.reserve(PolygonVertexCount * COMPONENT_COUNT_POSITION);
+        std::vector<float> normals; normals.reserve(PolygonVertexCount * COMPONENT_COUNT_NORMAL);
+        std::vector<float> uvs; uvs.reserve(PolygonVertexCount * COMPONENT_COUNT_UV);
+        std::vector<int> boneIndices; boneIndices.reserve(PolygonVertexCount * COMPONENT_COUNT_BONE);
+        std::vector<float> weights; weights.reserve(PolygonVertexCount * COMPONENT_COUNT_WEIGHT);
+        std::vector<float> tangents; tangents.reserve(PolygonVertexCount * COMPONENT_COUNT_TANGENT);
 
         for (std::map<int, std::vector<int>>::iterator it = submeshes.begin(); it != submeshes.end(); ++it)
         {
             std::vector<int> subMeshPolygonsIndice = it->second;
+            // Per Triangle
             for (int i : subMeshPolygonsIndice)
             {
-                for (int j = 0; j < TRIANGLE_VERTEX_COUNT; ++j)
+                int ip0 = pFbxMesh->GetPolygonVertex(i, 0);
+                int ip1 = pFbxMesh->GetPolygonVertex(i, 1);
+                int ip2 = pFbxMesh->GetPolygonVertex(i, 2);
+
+                FbxVector4 p0 = pFbxMesh->GetControlPointAt(ip0);
+                FbxVector4 p1 = pFbxMesh->GetControlPointAt(ip1);
+                FbxVector4 p2 = pFbxMesh->GetControlPointAt(ip2);
+                
+                positions.push_back(static_cast<float>(p0[0]));
+                positions.push_back(static_cast<float>(p0[1]));
+                positions.push_back(static_cast<float>(p0[2]));
+                positions.push_back(static_cast<float>(p1[0]));
+                positions.push_back(static_cast<float>(p1[1]));
+                positions.push_back(static_cast<float>(p1[2]));
+                positions.push_back(static_cast<float>(p2[0]));
+                positions.push_back(static_cast<float>(p2[1]));
+                positions.push_back(static_cast<float>(p2[2]));
+
+                FbxVector4 n0; pFbxMesh->GetPolygonVertexNormal(i, 0, n0);
+                FbxVector4 n1; pFbxMesh->GetPolygonVertexNormal(i, 1, n1);
+                FbxVector4 n2; pFbxMesh->GetPolygonVertexNormal(i, 2, n2);
+
+                normals.push_back(static_cast<float>(n0[0]));
+                normals.push_back(static_cast<float>(n0[1]));
+                normals.push_back(static_cast<float>(n0[2]));
+                normals.push_back(static_cast<float>(n1[0]));
+                normals.push_back(static_cast<float>(n1[1]));
+                normals.push_back(static_cast<float>(n1[2]));
+                normals.push_back(static_cast<float>(n2[0]));
+                normals.push_back(static_cast<float>(n2[1]));
+                normals.push_back(static_cast<float>(n2[2]));
+
+                bool unmapped;
+                FbxVector2 uv0; pFbxMesh->GetPolygonVertexUV(i, 0, pUvName, uv0, unmapped);
+                FbxVector2 uv1; pFbxMesh->GetPolygonVertexUV(i, 1, pUvName, uv1, unmapped);
+                FbxVector2 uv2; pFbxMesh->GetPolygonVertexUV(i, 2, pUvName, uv2, unmapped);
+
+                uvs.push_back(static_cast<float>(uv0[0]));
+                uvs.push_back(static_cast<float>(uv0[1]));
+                uvs.push_back(static_cast<float>(uv1[0]));
+                uvs.push_back(static_cast<float>(uv1[1]));
+                uvs.push_back(static_cast<float>(uv2[0]));
+                uvs.push_back(static_cast<float>(uv2[1]));
+
+                // ref - http://www.terathon.com/code/tangent.html
+
+                FbxVector4 q1 = p1 - p0;
+                FbxVector4 q2 = p2 - p0;
+                FbxVector2 duv1 = uv1 - uv0;
+                FbxVector2 duv2 = uv2 - uv0;
+                FbxDouble s1 = duv1[0];
+                FbxDouble t1 = duv1[1];
+                FbxDouble s2 = duv2[0];
+                FbxDouble t2 = duv2[1];
+                FbxDouble determinant = 1.0 / (s1 * t2 - t1 * s2);
+                FbxVector4 tangent = (q1 * t2 + q2 * -t1) / determinant;
+                FbxVector4 bitangent = (q1 * -s2 + q2 * s1) / determinant;
+
+                FbxVector4 n[] = { n0, n1, n2 };
+                for (int i = 0; i < TRIANGLE_VERTEX_COUNT; ++i)
                 {
-                    int controlPointIndex = pMesh->GetPolygonVertex(i, j);
-                    FbxVector4 controlPoint = pMesh->GetControlPointAt(controlPointIndex);
-                    positions.push_back(static_cast<float>(controlPoint[0]));
-                    positions.push_back(static_cast<float>(controlPoint[1]));
-                    positions.push_back(static_cast<float>(controlPoint[2]));
-
-                    FbxVector4 fbxNormal;
-                    pMesh->GetPolygonVertexNormal(i, j, fbxNormal);
-                    normals.push_back(static_cast<float>(fbxNormal[0]));
-                    normals.push_back(static_cast<float>(fbxNormal[1]));
-                    normals.push_back(static_cast<float>(fbxNormal[2]));
-
-                    FbxVector2 fbxUv;
-                    bool unmapped;
-                    pMesh->GetPolygonVertexUV(i, j, pUvName, fbxUv, unmapped);
-                    uvs.push_back(static_cast<float>(fbxUv[0]));
-                    uvs.push_back(static_cast<float>(fbxUv[1]));
+                    FbxVector4 vertexTangent = tangent - n[i] * tangent.DotProduct(n[i]);
+                    FbxVector4 vertexBitangent = bitangent - n[i] * n[i].DotProduct(bitangent) - vertexTangent * vertexTangent.DotProduct(bitangent) / vertexTangent.SquareLength();
+                    vertexTangent.Normalize();
+                    tangents.push_back(static_cast<float>(vertexTangent[0]));
+                    tangents.push_back(static_cast<float>(vertexTangent[1]));
+                    tangents.push_back(static_cast<float>(vertexTangent[2]));
+                    FbxVector4 generatedBitangent = n[i].CrossProduct(vertexTangent);
+                    tangents.push_back(static_cast<float>(generatedBitangent.DotProduct(vertexBitangent) < 0.f ? -1.f : 1.f));
                 }
-            }
-        }
 
-        for (int i = 0; i < PolygonCount; ++i)
-        {
-            for (int j = 0; j < TRIANGLE_VERTEX_COUNT; ++j)
-            {
-                int controlPointIndex = pMesh->GetPolygonVertex(i, j);
-                std::vector<BoneWeight>& boneWeights = controlPointIndexToBoneWeights[controlPointIndex];
-                const int CountWeights = std::min(static_cast<int>(boneWeights.size()), static_cast<int>(COMPONENT_COUNT_BONE));
-                for (int k = 0; k < CountWeights; ++k)
+                int ips[TRIANGLE_VERTEX_COUNT] = { ip0, ip1, ip2 };
+                for (int k = 0; k < TRIANGLE_VERTEX_COUNT; ++k)
                 {
-                    int l = i * TRIANGLE_VERTEX_COUNT * COMPONENT_COUNT_BONE + j * COMPONENT_COUNT_BONE + k;
-                    boneIndices[l] = boneWeights[k].boneIndex;
-                    weights[l] = boneWeights[k].weight;
+                    int ip = ips[k];
+                    std::vector<BoneWeight>& boneWeights = controlPointIndexToBoneWeights[ip];
+                    const int CountWeights = std::min(static_cast<int>(boneWeights.size()), static_cast<int>(COMPONENT_COUNT_BONE));
+                    for (int j = 0; j < CountWeights; ++j)
+                    {
+                        boneIndices.push_back(boneWeights[j].boneIndex);
+                        weights.push_back(boneWeights[j].weight);
+                    }
+                    for (int j = CountWeights; j < COMPONENT_COUNT_BONE; ++j)
+                    {
+                        boneIndices.push_back(0);
+                        weights.push_back(0);
+                    }
                 }
             }
         }
@@ -750,6 +790,10 @@ void FbxLoader::LoadMesh()
         AttributeArray aaWeights(COMPONENT_COUNT_WEIGHT, GL_FLOAT, 0, 0);
         aaWeights.Fill(weights.size() * sizeof(weights[0]), weights.data());
         pMyMesh->AddAttributeArray(aaWeights);
+
+        AttributeArray aaTangenets(COMPONENT_COUNT_TANGENT, GL_FLOAT, 0, 0);
+        aaTangenets.Fill(tangents.size() * sizeof(tangents[0]), tangents.data());
+        pMyMesh->AddAttributeArray(aaTangenets);
 
         m_meshes.push_back(pMyMesh);
     });
