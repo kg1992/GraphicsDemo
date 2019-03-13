@@ -17,18 +17,59 @@
 
 namespace
 {
+    const int MaximumBoneCount = 128;
+    const char* const JointTransformsUniformName = "jointTransforms[0]";
+
     void SendMaterial(ShaderProgram& program, Material& material)
     {
         if (material.GetAmbientMap() != 0)
-            program.TrySendUniform("material.ambientMap", (int)material.GetAmbientMap());
-        program.TrySendUniform("material.ka", material.GetAmbientColor()[0], material.GetAmbientColor()[1], material.GetAmbientColor()[2]);
+        {
+            glActiveTexture(GL_TEXTURE0);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetAmbientMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.ambientMap", 0);
+        }
+        program.TrySendUniform("material.ka", glm::vec3(material.GetAmbientColor()));
+
         if (material.GetDiffuseMap() != 0)
-            program.TrySendUniform("material.diffuseMap", (int)material.GetDiffuseMap());
-        program.TrySendUniform("material.kd", material.GetDiffuseColor()[0], material.GetDiffuseColor()[1], material.GetDiffuseColor()[2]);
+        {
+            glActiveTexture(GL_TEXTURE1);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetDiffuseMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.diffuseMap", 1);
+        }
+        program.TrySendUniform("material.kd", glm::vec3(material.GetDiffuseColor()));
+
         if (material.GetSpecularMap() != 0)
-            program.TrySendUniform("material.specularMap", (int)material.GetSpecularMap());
-        program.TrySendUniform("material.ks", material.GetSpecularColor()[0], material.GetSpecularColor()[1], material.GetSpecularColor()[2]);
+        {
+            glActiveTexture(GL_TEXTURE2);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetSpecularMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.specularMap", 2);
+        }
+        program.TrySendUniform("material.ks", material.GetSpecularColor());
+
         program.TrySendUniform("material.shininess", material.GetShininess());
+
+        if (material.GetNormalMap() != 0)
+        {
+            glActiveTexture(GL_TEXTURE3);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glBindTexture(GL_TEXTURE_2D, material.GetNormalMap());
+            GET_AND_HANDLE_GL_ERROR();
+
+            program.TrySendUniform("material.normalMap", 3);
+        }
     }
 }
 
@@ -36,8 +77,8 @@ Object::Object()
     : m_position()
     , m_scale(1,1,1)
     , m_rotation(glm::identity<glm::quat>())
-    , m_mvMatrix(glm::identity<glm::mat4x4>())
-    , m_mesh()
+    , m_mwMatrix(glm::identity<glm::mat4x4>())
+    , m_meshes()
 {
 }
 
@@ -80,30 +121,49 @@ void Object::SetTransformMatrix(const glm::mat4x4& transformMatrix)
     glm::vec3 skew;
     glm::vec4 proj;
     glm::decompose(transformMatrix, m_position, m_rotation, m_scale, skew, proj);
-    m_mvMatrix = transformMatrix;
-}
-
-void Object::ApplyTransformMatrix(const glm::mat4x4& transformMatrix)
-{
-    SetTransformMatrix(transformMatrix * m_mvMatrix);
+    m_mwMatrix = transformMatrix;
 }
 
 void Object::UpdateTransformMatrix()
 {
-    m_mvMatrix = glm::identity<glm::mat4x4>();
-    m_mvMatrix = glm::scale(m_mvMatrix, m_scale);
-    m_mvMatrix *= glm::toMat4(m_rotation);
-    m_mvMatrix = glm::translate(m_mvMatrix, m_position);
+    glm::mat4 i = glm::identity<glm::mat4x4>();
+    glm::mat4 s = glm::scale(glm::identity<glm::mat4x4>(), m_scale);
+    glm::mat4 r = glm::toMat4(m_rotation);
+    glm::mat4 t = glm::translate(glm::identity<glm::mat4x4>(), m_position);
+    m_mwMatrix = t * r * s;
+}
+
+void Object::Update()
+{
+    if (m_pAnimator)
+    {
+        m_pAnimator->Update(*this);
+    }
 }
 
 const glm::mat4x4& Object::GetTransformMatrix()
 {
-    return m_mvMatrix;
+    return m_mwMatrix;
 }
 
 void Object::AddMaterial(std::shared_ptr<Material> pMaterial)
 {
     m_materials.push_back(pMaterial);
+}
+
+std::shared_ptr<Material> Object::GetMaterial(int index)
+{
+    return m_materials[index];
+}
+
+void Object::AddMesh(std::shared_ptr<Mesh> mesh)
+{
+    m_meshes.push_back(mesh);
+}
+
+std::shared_ptr<Mesh> Object::GetMesh(int index)
+{
+    return m_meshes[index];
 }
 
 void Object::Free()
@@ -114,38 +174,77 @@ void Object::Free()
         m_materials.pop_back();
     }
 
-    if (m_mesh)
+    while( !m_meshes.empty())
     {
-        m_mesh->Free();
-        m_mesh.reset();
+        m_meshes.back()->Free();
+        m_meshes.pop_back();
     }
+
+    m_pAnimator.reset();
+
+    m_pSkeleton.reset();
 }
 
 void Object::Render(ShaderProgram& program)
 {
-    m_mesh->Apply();
-
-    if (m_mesh->HasSubMesh())
+    if (m_pSkeleton)
     {
-        for (int i = 0; i < m_mesh->GetSubMeshCount(); ++i)
+        glm::mat4 boneTransforms[MaximumBoneCount];
+        const int BoneCount = m_pSkeleton->GetBoneCount();
+        for (int i = 0; i < BoneCount; ++i)
         {
-            SendMaterial(program, *m_materials[i]);
-            Mesh::SubMesh subMesh = m_mesh->GetSubMesh(i);
-            glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
-            GET_AND_HANDLE_GL_ERROR();
+            Bone& bone = m_pSkeleton->GetBoneByIndex(i);
+            boneTransforms[i] = bone.GetAnimationTrasnform();
         }
-    }
-    else
-    {
-        if (m_materials.size() == 0)
+        for (int i = BoneCount; i < MaximumBoneCount; ++i)
         {
-            SendMaterial(program, Material::GetDefaultMaterial());
+            boneTransforms[i] = glm::identity<glm::mat4>();
+        }
+
+        program.TrySendUniform(JointTransformsUniformName, BoneCount, GL_FALSE, boneTransforms[0]);
+    }
+
+    for (auto& mesh : m_meshes)
+    {
+        mesh->Apply();
+
+        if (mesh->HasSubMesh())
+        {
+            for (int i = 0; i < mesh->GetSubMeshCount(); ++i)
+            {
+                SendMaterial(program, *m_materials[i]);
+                Mesh::SubMesh subMesh = mesh->GetSubMesh(i);
+                glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
+                GET_AND_HANDLE_GL_ERROR();
+            }
         }
         else
         {
-            SendMaterial(program, *m_materials[0]);
+            if (m_materials.size() == 0)
+            {
+                SendMaterial(program, Material::GetDefaultMaterial());
+            }
+            else
+            {
+                SendMaterial(program, *m_materials[0]);
+            }
+            glDrawArrays(GL_TRIANGLES, 0, mesh->GetAttributeArray(0).GetAttributeCount());
+            GET_AND_HANDLE_GL_ERROR();
         }
-        glDrawArrays(GL_TRIANGLES, 0, m_mesh->GetAttributeArray(0).GetAttributeCount());
-        GET_AND_HANDLE_GL_ERROR();
     }
+}
+
+std::shared_ptr<Skeleton> Object::GetSkeleton()
+{
+    return m_pSkeleton;
+}
+
+void Object::SetSkeleton(std::shared_ptr<Skeleton> pSkeleton)
+{
+    m_pSkeleton = pSkeleton;
+}
+
+void Object::SetAnimator(std::shared_ptr<Animator> pAnimator)
+{
+    m_pAnimator = pAnimator;
 }

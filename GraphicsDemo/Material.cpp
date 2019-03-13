@@ -9,44 +9,6 @@
 #include "Material.h"
 #include "Errors.h"
 
-namespace
-{
-    // Get specific property value and connected texture if any.
-    // Value = Property value * Factor property value (if no factor property, multiply by 1).
-    FbxDouble3 GetMaterialProperty(const FbxSurfaceMaterial * pMaterial, const char * pPropertyName, const char * pFactorPropertyName, GLuint & pTextureName)
-    {
-        FbxDouble3 lResult(0, 0, 0);
-        const FbxProperty lProperty = pMaterial->FindProperty(pPropertyName);
-        const FbxProperty lFactorProperty = pMaterial->FindProperty(pFactorPropertyName);
-        if (lProperty.IsValid() && lFactorProperty.IsValid())
-        {
-            lResult = lProperty.Get<FbxDouble3>();
-            double lFactor = lFactorProperty.Get<FbxDouble>();
-            if (lFactor != 1)
-            {
-                lResult[0] *= lFactor;
-                lResult[1] *= lFactor;
-                lResult[2] *= lFactor;
-            }
-        }
-
-        if (lProperty.IsValid())
-        {
-            const int lTextureCount = lProperty.GetSrcObjectCount<FbxFileTexture>();
-            if (lTextureCount)
-            {
-                const FbxFileTexture* lTexture = lProperty.GetSrcObject<FbxFileTexture>();
-                if (lTexture && lTexture->GetUserDataPtr())
-                {
-                    pTextureName = *(static_cast<GLuint *>(lTexture->GetUserDataPtr()));
-                }
-            }
-        }
-
-        return lResult;
-    }
-}
-
 Material::Material()
     : m_emissive()
     , m_ambient()
@@ -61,42 +23,98 @@ void Material::Free()
     if (m_ambient.map != 0)
     {
         glDeleteTextures(1, &m_ambient.map);
-        GET_AND_HANDLE_GL_ERROR();
         m_ambient.map = 0;
     }
-}
 
-bool Material::Initialize(const FbxSurfaceMaterial * pMaterial)
-{
-    const FbxDouble3 lEmissive = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, m_emissive.map);
-    m_emissive.color[0] = static_cast<GLfloat>(lEmissive[0]);
-    m_emissive.color[1] = static_cast<GLfloat>(lEmissive[1]);
-    m_emissive.color[2] = static_cast<GLfloat>(lEmissive[2]);
-
-    const FbxDouble3 lAmbient = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, m_ambient.map);
-    m_ambient.color[0] = static_cast<GLfloat>(lAmbient[0]);
-    m_ambient.color[1] = static_cast<GLfloat>(lAmbient[1]);
-    m_ambient.color[2] = static_cast<GLfloat>(lAmbient[2]);
-
-    const FbxDouble3 lDiffuse = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sDiffuseFactor, m_diffuse.map);
-    m_diffuse.color[0] = static_cast<GLfloat>(lDiffuse[0]);
-    m_diffuse.color[1] = static_cast<GLfloat>(lDiffuse[1]);
-    m_diffuse.color[2] = static_cast<GLfloat>(lDiffuse[2]);
-
-    const FbxDouble3 lSpecular = GetMaterialProperty(pMaterial, FbxSurfaceMaterial::sSpecular, FbxSurfaceMaterial::sSpecularFactor, m_specular.map);
-    m_specular.color[0] = static_cast<GLfloat>(lSpecular[0]);
-    m_specular.color[1] = static_cast<GLfloat>(lSpecular[1]);
-    m_specular.color[2] = static_cast<GLfloat>(lSpecular[2]);
-
-    FbxProperty lShininessProperty = pMaterial->FindProperty(FbxSurfaceMaterial::sShininess);
-    if (lShininessProperty.IsValid())
+    if (m_diffuse.map != 0)
     {
-        double lShininess = lShininessProperty.Get<FbxDouble>();
-        m_shininess = static_cast<GLfloat>(lShininess);
+        glDeleteTextures(1, &m_diffuse.map);
+        m_ambient.map = 0;
     }
 
-    return true;
+    if (m_specular.map != 0)
+    {
+        glDeleteTextures(1, &m_specular.map);
+        m_specular.map = 0;
+    }
+
+    if (m_emissive.map != 0)
+    {
+        glDeleteTextures(1, &m_emissive.map);
+        m_emissive.map = 0;
+    }
 }
+
+GLuint Material::GetEmissiveMap() { return m_emissive.map; }
+
+void Material::SetEmissiveMap(GLuint map) { m_emissive.map = map; }
+
+const glm::vec4& Material::GetEmissiveColor() { return m_emissive.color; }
+
+void Material::SetEmissiveColor(const glm::vec4 & color) { m_emissive.color = color; }
+
+void Material::SetEmissiveColor(float r, float g, float b, float a)
+{
+    m_ambient.color[0] = r;
+    m_ambient.color[1] = g;
+    m_ambient.color[2] = b;
+    m_ambient.color[3] = a;
+}
+
+GLuint Material::GetAmbientMap() { return m_ambient.map; }
+
+void Material::SetAmbientMap(GLuint map) { m_ambient.map = map; }
+
+const glm::vec4& Material::GetAmbientColor() { return m_ambient.color; }
+
+void Material::SetAmbientColor(const glm::vec4 & color) { m_ambient.color = color; }
+
+void Material::SetAmbientColor(float r, float g, float b, float a)
+{
+    m_ambient.color[0] = r;
+    m_ambient.color[1] = g;
+    m_ambient.color[2] = b;
+    m_ambient.color[3] = a;
+}
+
+GLuint Material::GetDiffuseMap() { return m_diffuse.map; }
+
+void Material::SetDiffuseMap(GLuint map) { m_diffuse.map = map; }
+
+const glm::vec4& Material::GetDiffuseColor() { return m_diffuse.color; }
+
+void Material::SetDiffuseColor(const glm::vec4 & color)
+{
+    SetDiffuseColor(color.r, color.g, color.b, color.a);
+}
+
+void Material::SetDiffuseColor(float r, float g, float b, float a)
+{
+    m_diffuse.color[0] = r;
+    m_diffuse.color[1] = g;
+    m_diffuse.color[2] = b;
+    m_diffuse.color[3] = a;
+}
+
+GLuint Material::GetSpecularMap() { return m_specular.map; }
+
+void Material::SetSpecularMap(GLuint map) { m_specular.map = map; }
+
+const glm::vec4& Material::GetSpecularColor() { return m_specular.color; }
+
+void Material::SetSpecularColor(const glm::vec4 & color) { m_specular.color = color; }
+
+void Material::SetSpecularColor(float r, float g, float b, float a)
+{
+    m_specular.color[0] = r;
+    m_specular.color[1] = g;
+    m_specular.color[2] = b;
+    m_specular.color[3] = a;
+}
+
+GLfloat Material::GetShininess() { return m_shininess; }
+
+void Material::SetShininess(GLfloat shininess) { m_shininess = shininess; }
 
 Material& Material::GetDefaultMaterial()
 {
@@ -105,4 +123,14 @@ Material& Material::GetDefaultMaterial()
     s_defaultMaterial.SetDiffuseColor(1.0f, .0f, .0f);
     s_defaultMaterial.SetSpecularColor(1.0f, .0f, .0f);
     return s_defaultMaterial;
+}
+
+const std::string & Material::GetName()
+{
+    return m_name;
+}
+
+void Material::SetName(const std::string & name)
+{
+    m_name = name;
 }

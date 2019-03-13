@@ -1,11 +1,8 @@
 #ifndef SYSTEM_H_
 #define SYSTEM_H_
 
-#include <Windows.h>
-#include <vector>
 #include "Singleton.h"
 #include "Clock.h"
-#include <glm/glm.hpp>
 
 class SystemComponent;
 

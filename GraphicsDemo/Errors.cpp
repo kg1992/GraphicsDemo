@@ -1,6 +1,8 @@
 /*
     Errors.cpp
 
+    Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
+
     Error Handling Code.
 */
 #include "Common.h"
@@ -31,8 +33,7 @@ void GetAndHandleGLError(const char *file, int line) {
         }
 
         std::cerr << "GL_" << error.c_str() << " - " << file << ":" << line << std::endl;
-        err = glGetError();
-        DebugBreak();
+        assert("There was an GL Error");
     }
 }
 

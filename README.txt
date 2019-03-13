@@ -8,6 +8,7 @@ Graphics Demo
 https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context_(WGL)
 https://boycoding.tistory.com/134?category=990597
 https://learnopengl.com/In-Practice/Text-Rendering
+https://www.mixamo.com/#/
 
 	[ External Dependencies ]
 OpenGL

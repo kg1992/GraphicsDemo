@@ -11,112 +11,92 @@
 class Material
 {
 public:
-    enum
-    {
-        COLOR_SIZE = 4
-    };
-
     Material();
 
     void Free();
 
-    GLuint GetEmissiveMap() { return m_emissive.map; }
+    GLuint GetEmissiveMap();
 
-    void SetEmissiveMap(GLuint map) { m_emissive.map = map; }
+    void SetEmissiveMap(GLuint map);
 
-    GLfloat* GetEmissiveColor() { return m_emissive.color; }
+    const glm::vec4& GetEmissiveColor();
 
-    void SetEmissiveColor(const glm::vec4& color) { SetEmissiveColor(color.r, color.g, color.b, color.a); }
+    void SetEmissiveColor(const glm::vec4& color);
 
-    void SetEmissiveColor(float r, float g, float b, float a = 1.0f)
-    {
-        m_ambient.color[0] = r;
-        m_ambient.color[1] = g;
-        m_ambient.color[2] = b;
-        m_ambient.color[3] = a;
-    }
+    void SetEmissiveColor(float r, float g, float b, float a = 1.0f);
 
-    GLuint GetAmbientMap() { return m_ambient.map; }
+    GLuint GetAmbientMap();
 
-    void SetAmbientMap(GLuint map) { m_ambient.map = map; }
+    void SetAmbientMap(GLuint map);
 
-    GLfloat* GetAmbientColor() { return m_ambient.color; }
+    const glm::vec4& GetAmbientColor();
 
-    void SetAmbientColor(const glm::vec4& color) { SetAmbientColor(color.r, color.g, color.b, color.a); }
+    void SetAmbientColor(const glm::vec4& color);
 
-    void SetAmbientColor(float r, float g, float b, float a = 1.0f)
-    {
-        m_ambient.color[0] = r;
-        m_ambient.color[1] = g;
-        m_ambient.color[2] = b;
-        m_ambient.color[3] = a;
-    }
+    void SetAmbientColor(float r, float g, float b, float a = 1.0f);
 
-    GLuint GetDiffuseMap() { return m_diffuse.map; }
+    GLuint GetDiffuseMap();
 
-    void SetDiffuseMap(GLuint map) { m_diffuse.map = map; }
+    void SetDiffuseMap(GLuint map);
 
-    GLfloat* GetDiffuseColor() { return m_diffuse.color; }
+    const glm::vec4& GetDiffuseColor();
 
-    void SetDiffuseColor(const glm::vec4& color)
-    { 
-        SetDiffuseColor(color.r, color.g, color.b, color.a);
-    }
+    void SetDiffuseColor(const glm::vec4& color);
 
-    void SetDiffuseColor(float r, float g, float b, float a = 1.0f)
-    {
-        m_diffuse.color[0] = r;
-        m_diffuse.color[1] = g;
-        m_diffuse.color[2] = b;
-        m_diffuse.color[3] = a;
-    }
+    void SetDiffuseColor(float r, float g, float b, float a = 1.0f);
 
-    GLuint GetSpecularMap() { return m_specular.map; }
+    GLuint GetSpecularMap();
 
-    void SetSpecularMap(GLuint map) { m_specular.map = map; }
+    void SetSpecularMap(GLuint map);
 
-    GLfloat* GetSpecularColor() { return m_specular.color; }
+    const glm::vec4& GetSpecularColor();
 
-    void SetSpecularColor(const glm::vec4& color) { SetSpecularColor(color.r, color.g, color.b, color.a); }
+    void SetSpecularColor(const glm::vec4& color);
 
-    void SetSpecularColor(float r, float g, float b, float a = 1.0f)
-    {
-        m_specular.color[0] = r;
-        m_specular.color[1] = g;
-        m_specular.color[2] = b;
-        m_specular.color[3] = a;
-    }
+    void SetSpecularColor(float r, float g, float b, float a = 1.0f);
 
+    GLfloat GetShininess();
 
-
-    GLfloat GetShininess() { return m_shininess; }
-
-    void SetShininess(GLfloat shininess) { m_shininess = shininess; }
-
-    // Bake material properties.
-    bool Initialize(const FbxSurfaceMaterial * pMaterial);
+    // Usually, artists use value between 0 <= shininess <= 200
+    void SetShininess(GLfloat shininess);
 
     static Material& GetDefaultMaterial();
+    
+    const std::string& GetName();
+
+    void SetName(const std::string& name);
+
+    const GLuint GetNormalMap()
+    {
+        return m_normalMap;
+    }
+
+    void SetNormalMap(GLuint normalMap)
+    {
+        m_normalMap = normalMap;
+    }
+
 
 private:
     struct ColorChannel
     {
-        ColorChannel() : map(0)
+        ColorChannel()
+            : map(0)
+            , color(0.0f, 0.0f, 0.0f, 1.0f)
         {
-            color[0] = 0.0f;
-            color[1] = 0.0f;
-            color[2] = 0.0f;
-            color[3] = 1.0f;
         }
 
         GLuint map;
-        GLfloat color[COLOR_SIZE];
+        glm::vec4 color;
     };
+
+    std::string m_name;
 
     ColorChannel m_emissive;
     ColorChannel m_ambient;
     ColorChannel m_diffuse;
     ColorChannel m_specular;
+    GLuint m_normalMap;
     GLfloat m_shininess;
 };
 

@@ -1,0 +1,44 @@
+@startuml
+
+class System
+abstract class SystemComponent
+class GraphicsDemo
+class Material
+class Object
+class Mesh
+class Animator
+class FbxLoader
+class AttributeArray
+class Camera
+class Skeleton
+class ShaderProgram
+class ShaderPrograms
+class PointLight
+class SpotLight
+
+class Animation
+class KeyFrame
+class BoneTransform
+
+System o--> "*" SystemComponent
+SystemComponent <|-- GraphicsDemo
+GraphicsDemo o--> "*" Object
+GraphicsDemo *--> "1" Camera
+GraphicsDemo *--> "5" PointLight
+GraphicsDemo *--> "1" SpotLight
+
+ShaderPrograms o--> ShaderProgram
+
+Object o--> "1" Animator
+Object o--> "*" Material
+Object o--> "*" Mesh
+Object o--> "1" Skeleton
+
+Mesh o--> "*" AttributeArray
+
+Animator o--> "1" Animation
+Animation o--> "*" KeyFrame
+KeyFrame o--> "*" BoneTransform
+Skeleton o--> "*" Bone
+
+@enduml

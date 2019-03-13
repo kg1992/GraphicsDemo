@@ -185,10 +185,14 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Animation.h" />
+    <ClInclude Include="Animator.h" />
     <ClInclude Include="AttributeArray.h" />
+    <ClInclude Include="Bone.h" />
     <ClInclude Include="Clock.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="Errors.h" />
+    <ClInclude Include="FbxLoader.h" />
     <ClInclude Include="FontRenderer.h" />
     <ClInclude Include="GraphicsDemo.h" />
     <ClInclude Include="Lights.h" />
@@ -196,16 +200,19 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="resource.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="ShaderPrograms.h" />
     <ClInclude Include="Singleton.h" />
+    <ClInclude Include="Skeleton.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="System.h" />
     <ClInclude Include="SystemComponent.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Animation.cpp" />
+    <ClCompile Include="Animator.cpp" />
     <ClCompile Include="AttributeArray.cpp" />
+    <ClCompile Include="Bone.cpp" />
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="Common.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -219,6 +226,7 @@
     <ClCompile Include="FontRenderer.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GraphicsDemo.cpp" />
+    <ClCompile Include="Lights.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
@@ -226,6 +234,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="ShaderPrograms.cpp" />
+    <ClCompile Include="Skeleton.cpp" />
     <ClCompile Include="stb_image.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>

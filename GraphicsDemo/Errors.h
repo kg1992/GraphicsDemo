@@ -6,11 +6,6 @@
 #ifndef ERRORS_H_
 #define ERRORS_H_
 
-#include <string>
-#include <vector>
-#include <Windows.h>
-#include <glad.h>
-
 // comment out EXIT_ON_ERROR to stp assertive mode.
 #define EXIT_ON_ERROR
 
