@@ -11,6 +11,9 @@
 #include "SystemComponent.h"
 #include "Lights.h"
 #include "Camera.h"
+#include "SceneRenderer.h"
+#include "PeekViewportRenderer.h"
+#include "GizmoRenderer.h"
 
 class Object;
 class ShaderProgram;
@@ -33,21 +36,12 @@ private:
     int m_lastMouseX;
     int m_lastMouseY;
     bool m_mousePosRecordStarted;
-    std::vector<std::shared_ptr<Object>> m_objects;
-    Camera m_camera;
-    std::vector<PointLight> m_pointLights;
+    std::shared_ptr<Scene> m_pScene;
+    SceneRenderer m_sceneRenderer;
+    PeekViewportRenderer m_peekViewportRenderer;
+    GizmoRenderer m_gizmoRenderer;
 
-    void RenderObject(ShaderProgram& program, Object& object);
-    void AddGround();
-    void DrawPointLights();
-    void DrawScene();
-    void DrawPeekViewports();
-    void DrawObjectCenter();
-    void PrepareLights();
-    void SendPointLight(ShaderProgram& program, int index, PointLight& light);
-    void SendSpotLight(ShaderProgram& program, SpotLight& light);
-    void SendLights(ShaderProgram& program, int count);
-    void SendMatrices(ShaderProgram& program, Object& object);
+    Camera& GetCamera();
 };
 
 #endif

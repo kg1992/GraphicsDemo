@@ -12,27 +12,43 @@ class AttributeArray
 class Camera
 class Skeleton
 class ShaderProgram
+{
+	+ GetUniofrmLocation()
+	+ SendUniform()
+	+ TrySendUniform()
+}
 class ShaderPrograms
 class PointLight
 class SpotLight
+class KnightPunchingScene
 
 class Animation
 class KeyFrame
 class BoneTransform
+class TextureObject
 
 System o--> "*" SystemComponent
 SystemComponent <|-- GraphicsDemo
-GraphicsDemo o--> "*" Object
-GraphicsDemo *--> "1" Camera
-GraphicsDemo *--> "5" PointLight
-GraphicsDemo *--> "1" SpotLight
+GraphicsDemo .> FbxLoader : Use
+GraphicsDemo "1" *--> "1" Scene
+GraphicsDemo *--> SceneRenderer
+GraphicsDemo *--> PeekViewportRenderer
+GraphicsDemo *--> GizmoRenderer
 
-ShaderPrograms o--> ShaderProgram
+ShaderPrograms o--> "*" ShaderProgram
 
 Object o--> "1" Animator
 Object o--> "*" Material
 Object o--> "*" Mesh
 Object o--> "1" Skeleton
+
+Material o--> "*" TextureObject
+
+Scene o-- "*" Object
+Scene o-- "*" PointLight
+Scene o-- "*" SpotLight
+Scene *-- "1" Camera
+Scene <|-- KnightPunchingScene
 
 Mesh o--> "*" AttributeArray
 

@@ -8,9 +8,12 @@
 */
 #version 430 core
 
+const int MaximumPointLightCount = 5;
+const int ActivePointLightCount = 1;
+const int MaximumSpotLightCount = 5;
+const int ActiveSpotLightCount = 1;
 const int MaximumWeights = 3;
 const int MaximumBoneCount = 128;
-const int LightCount = 1;
 
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec2 uv;
@@ -24,17 +27,25 @@ uniform struct LightInfo
 	vec4 position;
 	vec3 la;
 	vec3 l;
-} light[LightCount];
+} light[MaximumPointLightCount];
+
+uniform struct SpotLightInfo {
+    vec3 position;  // Position in cam coords
+    vec3 l;         // Diffuse/spec intensity
+    vec3 la;        // Amb intensity
+    vec3 direction; // Direction of the spotlight in cam coords.
+    float exponent; // Angular attenuation exponent
+    float cutoff;   // Cutoff angle (between 0 and pi/2)
+} spot;
 
 uniform mat4 jointTransforms[MaximumBoneCount];
 
 out vec2 vUv;
 out vec3 vEyePosition;
 out vec3 vNormal;
-out vec3 vTangentLights[LightCount];
+out vec3 vTangentLights[MaximumPointLightCount];
 out vec3 vTangentViewDir;
 
-uniform mat4 mwMatrix;
 uniform mat4 mvMatrix;
 uniform mat3 normalMatrix;
 uniform mat4 projMatrix;
@@ -73,7 +84,7 @@ void main(void)
 
 	vec4 viewVertexPosition = mvMatrix * totalLocalPos;
 
-	for( int i = 0; i < LightCount; ++ i)
+	for( int i = 0; i < ActivePointLightCount; ++ i)
 	{
 		vTangentLights[i] = vtMatrix * vec3(light[i].position - viewVertexPosition);
 	}
