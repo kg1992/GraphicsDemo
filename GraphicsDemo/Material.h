@@ -8,6 +8,8 @@
 #ifndef MATERIAL_H_
 #define MATERIAL_H_
 
+struct RecordHeader;
+
 class Material
 {
 public:
@@ -66,16 +68,13 @@ public:
 
     void SetName(const std::string& name);
 
-    const GLuint GetNormalMap()
-    {
-        return m_normalMap;
-    }
+    const GLuint GetNormalMap();
 
-    void SetNormalMap(GLuint normalMap)
-    {
-        m_normalMap = normalMap;
-    }
+    void SetNormalMap(GLuint normalMap);
 
+    void Serialize(std::ostream& os);
+
+    void Deserialize(std::istream& is);
 
 private:
     struct ColorChannel
@@ -98,6 +97,9 @@ private:
     ColorChannel m_specular;
     GLuint m_normalMap;
     GLfloat m_shininess;
+
+    static void SerializeColorChannel(std::ostream& os, const ColorChannel& cc);
+    static void DeserializeColorChannel(std::istream& is, Material::ColorChannel& cc);
 };
 
 #endif

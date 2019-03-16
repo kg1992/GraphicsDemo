@@ -29,7 +29,7 @@ void GizmoRenderer::DrawPointLights(std::shared_ptr<Scene> pScene)
 {
     auto& program = ShaderPrograms::s_pointLight;
 
-    for (int i = 0; i < ActiveLightCount; ++i)
+    for (int i = 0; i < pScene->GetPointLightCount(); ++i)
     {
         PointLight& pointLight = pScene->GetPointLight(i);
 
@@ -48,14 +48,18 @@ void GizmoRenderer::DrawSpotLight(std::shared_ptr<Scene> pScene)
 {
     auto& program = ShaderPrograms::s_pointLight;
 
-    program.Use();
-    program.SendUniform("wCenterPos", glm::vec4(pScene->GetSpotLight(0).GetPosition(), 1));
-    program.SendUniform("wScale", 5.0f, 5.0f);
-    program.SendUniform("wvMatrix", 1, false, pScene->GetCamera().EyeMatrix());
-    program.SendUniform("projMatrix", 1, false, pScene->GetCamera().ProjectionMatrix());
+    for (int i = 0; i < pScene->GetSpotLightCount(); ++i)
+    {
 
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-    GET_AND_HANDLE_GL_ERROR();
+        program.Use();
+        program.SendUniform("wCenterPos", glm::vec4(pScene->GetSpotLight(i).GetPosition(), 1));
+        program.SendUniform("wScale", 5.0f, 5.0f);
+        program.SendUniform("wvMatrix", 1, false, pScene->GetCamera().EyeMatrix());
+        program.SendUniform("projMatrix", 1, false, pScene->GetCamera().ProjectionMatrix());
+
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        GET_AND_HANDLE_GL_ERROR();
+    }
 }
 
 void GizmoRenderer::DrawObjectCenter(std::shared_ptr<Scene> pScene)

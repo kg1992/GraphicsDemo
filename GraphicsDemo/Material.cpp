@@ -8,6 +8,7 @@
 #include "Common.h"
 #include "Material.h"
 #include "Errors.h"
+#include "Serialization.h"
 
 Material::Material()
     : m_emissive()
@@ -15,6 +16,7 @@ Material::Material()
     , m_diffuse()
     , m_specular()
     , m_shininess(.0f)
+    , m_normalMap(0)
 {
 }
 
@@ -55,10 +57,10 @@ void Material::SetEmissiveColor(const glm::vec4 & color) { m_emissive.color = co
 
 void Material::SetEmissiveColor(float r, float g, float b, float a)
 {
-    m_ambient.color[0] = r;
-    m_ambient.color[1] = g;
-    m_ambient.color[2] = b;
-    m_ambient.color[3] = a;
+    m_emissive.color[0] = r;
+    m_emissive.color[1] = g;
+    m_emissive.color[2] = b;
+    m_emissive.color[3] = a;
 }
 
 GLuint Material::GetAmbientMap() { return m_ambient.map; }
@@ -133,4 +135,127 @@ const std::string & Material::GetName()
 void Material::SetName(const std::string & name)
 {
     m_name = name;
+}
+
+const GLuint Material::GetNormalMap()
+{
+    return m_normalMap;
+}
+
+void Material::SetNormalMap(GLuint normalMap)
+{
+    m_normalMap = normalMap;
+}
+
+namespace {
+    enum TextureMapTarget
+    {
+        TMT_EMISSIVE,
+        TMT_AMBIENT,
+        TMT_DIFFUSE,
+        TMT_SPECULAR,
+        TMT_NORMAL
+    };
+
+    const int PixelComponentCount = 4;
+
+    void SerializeTextureObject(std::ostream& os, GLuint textureObject)
+    {
+        glBindTexture(GL_TEXTURE_2D, textureObject);
+        GET_AND_HANDLE_GL_ERROR();
+
+        GLint width;
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+        GET_AND_HANDLE_GL_ERROR();
+        assert(width > 0);
+
+        GLint height;
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+        GET_AND_HANDLE_GL_ERROR();
+        assert(height > 0);
+
+        std::vector<char> buffer(sizeof(float) * width * height * PixelComponentCount);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, buffer.data());
+        GET_AND_HANDLE_GL_ERROR();
+
+        Serialization::Write(os, width);
+        Serialization::Write(os, height);
+        os.write(buffer.data(), buffer.size());
+    }
+
+    void DeserializeTextureObject(std::istream& is, GLuint& map)
+    {
+        int width, height;
+        Serialization::Read(is, width);
+        Serialization::Read(is, height);
+        std::vector<char> buffer(width * height * PixelComponentCount * sizeof(float), '\0');
+        is.read(buffer.data(), buffer.size());
+
+        glGenTextures(1, &map);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glBindTexture(GL_TEXTURE_2D, map);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, buffer.data());
+        GET_AND_HANDLE_GL_ERROR();
+    }
+
+    void SerializeMap(std::ostream& os, GLuint map)
+    {
+        int mapCount = map ? 1 : 0;
+        Serialization::Write(os, mapCount);
+        if (mapCount)
+        {
+            SerializeTextureObject(os, map);
+        }
+    }
+
+    void DeserializeMap(std::istream& is, GLuint& map)
+    {
+        int mapCount;
+        Serialization::Read(is, mapCount);
+        if (mapCount)
+        {
+            DeserializeTextureObject(is, map);
+        }
+    }
+}
+
+void Material::Serialize(std::ostream & os)
+{
+    SerializeColorChannel(os, m_emissive);
+    SerializeColorChannel(os, m_ambient);
+    SerializeColorChannel(os, m_diffuse);
+    SerializeColorChannel(os, m_specular);
+    Serialization::Write(os, m_shininess);
+    SerializeMap(os, m_normalMap);
+}
+
+void Material::Deserialize(std::istream& is)
+{
+    DeserializeColorChannel(is, m_emissive);
+    DeserializeColorChannel(is, m_ambient);
+    DeserializeColorChannel(is, m_diffuse);
+    DeserializeColorChannel(is, m_specular);
+    Serialization::Read(is, m_shininess);
+    DeserializeMap(is, m_normalMap);
+}
+
+void Material::SerializeColorChannel(std::ostream& os, const Material::ColorChannel& cc)
+{
+    Serialization::Write(os, cc.color);
+    SerializeMap(os, cc.map);
+}
+
+void Material::DeserializeColorChannel(std::istream& is, Material::ColorChannel& cc)
+{
+    Serialization::Read(is, cc.color);
+    DeserializeMap(is, cc.map);
 }

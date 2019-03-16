@@ -35,6 +35,10 @@ public:
 
     int FindBoneIndex(const std::string& name);
 
+    void Serialize(std::ostream& os);
+
+    void Deserialize(std::istream& is);
+
 private:
     std::vector<Bone> m_bones;
 };

@@ -196,6 +196,7 @@
     <ClInclude Include="FontRenderer.h" />
     <ClInclude Include="GizmoRenderer.h" />
     <ClInclude Include="GraphicsDemo.h" />
+    <ClInclude Include="KeyFrame.h" />
     <ClInclude Include="KnightPunchingScene.h" />
     <ClInclude Include="Lights.h" />
     <ClInclude Include="Material.h" />
@@ -205,6 +206,7 @@
     <ClInclude Include="PeekViewportRenderer.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SceneRenderer.h" />
+    <ClInclude Include="Serialization.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="ShaderPrograms.h" />
     <ClInclude Include="Singleton.h" />
@@ -232,6 +234,7 @@
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="GizmoRenderer.cpp" />
     <ClCompile Include="GraphicsDemo.cpp" />
+    <ClCompile Include="KeyFrame.cpp" />
     <ClCompile Include="KnightPunchingScene.cpp" />
     <ClCompile Include="Lights.cpp" />
     <ClCompile Include="main.cpp" />

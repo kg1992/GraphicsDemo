@@ -13,6 +13,7 @@
 */
 #include "Common.h"
 #include "Animation.h"
+#include "Serialization.h"
 
 Animation::Animation(const std::string & name)
     : m_name(name)
@@ -22,6 +23,11 @@ Animation::Animation(const std::string & name)
 const std::string& Animation::GetName()
 {
     return m_name;
+}
+
+void Animation::SetName(const std::string& name)
+{
+    m_name = name;
 }
 
 void Animation::AddKeyFrame(KeyFrame keyFrame)
@@ -65,4 +71,29 @@ void Animation::SetLength(float length)
 float Animation::GetLength()
 {
     return m_length;
+}
+
+void Animation::Serialize(std::ostream& os) const
+{
+    Serialization::Write(os, m_name);
+    int keyFrameCount = static_cast<int>(m_keyFrames.size());
+    Serialization::Write(os, keyFrameCount);
+    for (int i = 0; i < keyFrameCount; ++i)
+    {
+        m_keyFrames[i].Serialize(os);
+    }
+    Serialization::Write(os, m_length);
+}
+
+void Animation::Deserialize(std::istream& is)
+{
+    Serialization::Read(is, m_name);
+    int keyFrameCount;
+    Serialization::Read(is, keyFrameCount);
+    m_keyFrames.resize(keyFrameCount);
+    for (int i = 0; i < keyFrameCount; ++i)
+    {
+        m_keyFrames[i].Deserialize(is);
+    }
+    Serialization::Read(is, m_length);
 }

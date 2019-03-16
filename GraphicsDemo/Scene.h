@@ -36,6 +36,11 @@ public:
         return static_cast<int>(m_objects.size());
     }
 
+    void AddSceneObject(std::shared_ptr<Object> pObject)
+    {
+        m_objects.push_back(pObject);
+    }
+
     PointLight& GetPointLight(int index)
     {
         return m_pointLights[index];
@@ -55,6 +60,10 @@ public:
     {
         return static_cast<int>(m_spotLights.size());
     }
+
+    void Serialize(std::ostream& os) const;
+
+    void Deserialize(std::istream& is);
 
 protected:
     std::vector<std::shared_ptr<Object>> m_objects;

@@ -47,6 +47,10 @@ public:
     // Invoke every frame to play animation.s
     void Update(Object& object);
 
+    void Serialize(std::ostream& os) const;
+
+    void Deserialize(std::istream& is);
+
 private:
     // Currently playing animation.
     std::shared_ptr<Animation> m_currentAnimation;

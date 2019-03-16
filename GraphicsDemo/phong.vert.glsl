@@ -49,20 +49,29 @@ out vec3 vTangentViewDir;
 uniform mat4 mvMatrix;
 uniform mat3 normalMatrix;
 uniform mat4 projMatrix;
+uniform bool uAnimationEnabled;
 
 void main(void)
 {
 	vec4 totalLocalPos = vec4(0.0);
 	vec4 totalNormal = vec4(0.0);
 
-	for( int i = 0; i < MaximumWeights; ++i )
+	// animation is not enabled.
+	if( uAnimationEnabled )
 	{
-		mat4 jointTransform = jointTransforms[bones[i]];
-		vec4 posePosition = jointTransform * position;
-		totalLocalPos += posePosition * weights[i];
+		for( int i = 0; i < MaximumWeights; ++i )
+		{
+			mat4 jointTransform = jointTransforms[bones[i]];
+			vec4 posePosition = jointTransform * position;
+			totalLocalPos += posePosition * weights[i];
 		
-		vec4 worldNormal = jointTransform * vec4(normal, 0.0);
-		totalNormal += worldNormal * weights[i];
+			vec4 worldNormal = jointTransform * vec4(normal, 0.0);
+			totalNormal += worldNormal * weights[i];
+		}
+	}
+	else
+	{
+		totalLocalPos = position;
 	}
 
 	vEyePosition = vec3(mvMatrix * totalLocalPos);

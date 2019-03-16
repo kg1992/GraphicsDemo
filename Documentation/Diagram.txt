@@ -3,7 +3,14 @@
 class System
 abstract class SystemComponent
 class GraphicsDemo
-class Material
+class Material {
+	- ColorChannel m_emissive
+	- ColorChannel m_ambien
+	- ColorChannel m_diffuse
+	- ColorChannel m_specular
+	- float m_shininess
+	- GLuint m_normalMap
+}
 class Object
 class Mesh
 class Animator
@@ -25,7 +32,6 @@ class KnightPunchingScene
 class Animation
 class KeyFrame
 class BoneTransform
-class TextureObject
 
 System o--> "*" SystemComponent
 SystemComponent <|-- GraphicsDemo
@@ -42,8 +48,6 @@ Object o--> "*" Material
 Object o--> "*" Mesh
 Object o--> "1" Skeleton
 
-Material o--> "*" TextureObject
-
 Scene o-- "*" Object
 Scene o-- "*" PointLight
 Scene o-- "*" SpotLight
@@ -51,6 +55,7 @@ Scene *-- "1" Camera
 Scene <|-- KnightPunchingScene
 
 Mesh o--> "*" AttributeArray
+Mesh *--> "*" SubMesh
 
 Animator o--> "1" Animation
 Animation o--> "*" KeyFrame

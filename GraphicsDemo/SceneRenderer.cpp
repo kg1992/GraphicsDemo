@@ -23,7 +23,7 @@ void SceneRenderer::Render(std::shared_ptr<Scene> pScene)
 
     program.Use();
 
-    for (int i = 0; i < ActiveLightCount; ++i)
+    for (int i = 0; i < pScene->GetPointLightCount(); ++i)
     {
         SendPointLight(pScene->GetCamera(), program, i, pScene->GetPointLight(i));
     }

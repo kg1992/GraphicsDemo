@@ -99,21 +99,11 @@ void KnightPunchingScene::AddGround()
 
 void KnightPunchingScene::PrepareLights()
 {
-    m_pointLights.resize(MaximumLightCount);
-
-    for (int i = 0; i < MaximumLightCount; ++i)
-    {
-        std::stringstream name;
-        name << "light[" << i << "].Position";
-        float x = 2.0f * cosf((glm::two_pi<float>() / 5) * i) * 10.0f;
-        float z = 2.0f * sinf((glm::two_pi<float>() / 5) * i) * 10.0f;
-        m_pointLights[i].position = glm::vec4(x, 1.2f, z + 1.0f, 1.0f);
-    }
     PointLight pl;
 
-    m_pointLights[0].la = glm::vec3(0.1f, 0.1f, 0.1f);
-    m_pointLights[0].ld = glm::vec3(1.0f, 1.0f, 1.0f);
-    m_pointLights[0].ls = glm::vec3(1.0f, 1.0f, 1.0f);
+    pl.la = glm::vec3(0.1f, 0.1f, 0.1f);
+    pl.ld = glm::vec3(1.0f, 1.0f, 1.0f);
+    pl.ls = glm::vec3(1.0f, 1.0f, 1.0f);
 
     m_pointLights.push_back(pl);
 

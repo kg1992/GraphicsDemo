@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "Skeleton.h"
+#include "Serialization.h"
 
 Skeleton::Skeleton()
 {
@@ -49,4 +50,27 @@ int Skeleton::FindBoneIndex(const char * name)
 int Skeleton::FindBoneIndex(const std::string & name)
 {
     return FindBoneIndex(name.c_str());
+}
+
+void Skeleton::Serialize(std::ostream& os)
+{
+    int boneCount = static_cast<int>(m_bones.size());
+    Serialization::Write(os, boneCount);
+    for (int i = 0; i < boneCount; ++i)
+    {
+        m_bones[i].Serialize(os);
+    }
+}
+
+void Skeleton::Deserialize(std::istream& is)
+{
+    int boneCount;
+    Serialization::Read(is, boneCount);
+    m_bones.reserve(boneCount);
+    for (int i = 0; i < boneCount; ++i)
+    {
+        Bone bone;
+        bone.Deserialize(is);
+        m_bones.push_back(bone);
+    }
 }

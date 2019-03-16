@@ -16,6 +16,7 @@
 #include "Material.h"
 #include "FbxLoader.h"
 #include "KnightPunchingScene.h"
+#include "Serialization.h"
 
 namespace
 {
@@ -65,7 +66,7 @@ GraphicsDemo::GraphicsDemo()
     : m_lastMouseX(0)
     , m_lastMouseY(0)
     , m_mousePosRecordStarted(false)
-    , m_pScene(new KnightPunchingScene())
+    , m_pScene()
 {
 }
 
@@ -73,13 +74,17 @@ void GraphicsDemo::OnStart()
 {
     // Load, compile, link shader programs.
     ShaderPrograms::Init();
+
+    const std::string OutPath = "Resources/Scene/";
+    const std::string OutMyScene = OutPath + "KnightPunchingScene.dat";
+    std::shared_ptr<Scene> pScene(new Scene);
+    std::ifstream ifs(OutMyScene, std::ios_base::in | std::ios_base::binary);
+    pScene->Deserialize(ifs);
+    ifs.close();
+
+    m_pScene = pScene;
     
     m_pScene->Init();
-
-    // // Renderer
-    // s_fontRenderer.SetFont("fonts/times.ttf");
-    // s_fontRenderer.SetScreenOrigin(.0f, .0f);
-    // s_fontRenderer.SetScreenSize(static_cast<float>(m_clientWidth), static_cast<float>(m_clientHeight));
 }
 
 void GraphicsDemo::Update(float dt)
@@ -129,8 +134,9 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         m_peekViewportRenderer.SetClientRect(width, height);
 
-        GetCamera().SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
-            0.1f, 1000.0f);
+        if( m_pScene )
+            GetCamera().SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
+                0.1f, 1000.0f);
     }
 
     case WM_MOUSEMOVE:
