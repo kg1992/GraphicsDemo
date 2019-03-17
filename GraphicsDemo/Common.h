@@ -39,6 +39,7 @@
 #include <queue>
 #include <stack>
 #include <iomanip>
+#include <iterator>
 
 #include <Windows.h>
 #include <Windowsx.h>

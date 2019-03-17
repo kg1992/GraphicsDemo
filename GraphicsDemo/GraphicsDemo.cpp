@@ -15,8 +15,8 @@
 #include "FontRenderer.h"
 #include "Material.h"
 #include "FbxLoader.h"
-
-std::shared_ptr<Mesh> GeneratePlane();
+#include "KnightPunchingScene.h"
+#include "Serialization.h"
 
 namespace
 {
@@ -60,19 +60,64 @@ namespace
     const int ActiveLightCount = 1;
     const int MaximumLightCount = 5;
     FontRenderer s_fontRenderer;
-    SpotLight s_spotLight;
-    float s_spotSpeed = 4.0f;
-    float s_speedX = -1.0;
-    float s_speedZ = 1.1618f;
-    float s_spotAngle = 0.0f;
+    GLuint s_cubeMap;
+
+    std::shared_ptr<Scene> LoadMyScene()
+    {
+        const std::string OutPath = "Resources/Scene/";
+        const std::string OutMyScene = OutPath + "KnightPunchingScene.dat";
+        std::shared_ptr<Scene> pScene(new Scene);
+        std::ifstream ifs(OutMyScene, std::ios_base::in | std::ios_base::binary);
+        pScene->Deserialize(ifs);
+        ifs.close();
+
+        return pScene;
+    }
+
+    GLuint LoadCubeMap()
+    {
+        const std::string SkyboxLocation = "./Resources/Skybox/mp_orbital/";
+        const std::string SkyboxName = "orbital-element";
+        const std::string Suffixes[] = { "posx", "negx", "posy", "negy", "posz", "negz" };
+        const std::string Extension = ".tga";
+        
+        GLuint t;
+        glGenTextures(1, &t);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, t);
+        GET_AND_HANDLE_GL_ERROR();
+
+        for (int i = 0; i < _countof(Suffixes); ++i)
+        {
+            GLint w, h, n;
+            const std::string texName = SkyboxLocation + SkyboxName + "_" + Suffixes[i] + Extension;
+            stbi_uc* pData = stbi_load(texName.c_str(), &w, &h, &n, 0);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, pData);
+            GET_AND_HANDLE_GL_ERROR();
+            stbi_image_free(pData);
+        }
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        GET_AND_HANDLE_GL_ERROR();
+
+        return t;
+    }
 }
 
 GraphicsDemo::GraphicsDemo()
-    : m_clientWidth(0)
-    , m_clientHeight(0)
-    , m_lastMouseX(0)
+    : m_lastMouseX(0)
     , m_lastMouseY(0)
     , m_mousePosRecordStarted(false)
+    , m_pScene()
 {
 }
 
@@ -80,98 +125,52 @@ void GraphicsDemo::OnStart()
 {
     // Load, compile, link shader programs.
     ShaderPrograms::Init();
+
+    m_pScene = LoadMyScene();
     
-    PrepareLights();
-    
-    // Initial m_camera location.
-    m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
+    m_pScene->Init();
 
-    // Load Objecrts
-    FbxLoader loader;
-    std::shared_ptr<Object> obj;
-
-    //// PUnching Tri
-    //loader.Load("./Resources/Punching Tri.fbx");
-    //obj = loader.GetObjectByIndex(0);
-    //obj->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
-    //m_objects.push_back(obj);
-
-    // Punching Knight
-    loader.Load("./Resources/Punching Knight.fbx");
-    obj = loader.GetObjectByIndex(0);
-    // obj->SetScale(glm::vec3(1.0f, 1.0f, 1.0f));
-    obj->GetMaterial(0)->SetSpecularColor(1.0f, 0.0f, 0.0f);
-    m_objects.push_back(obj);
-
-    // Add ground
-    // AddGround();
-
-    // // Renderer
-    // s_fontRenderer.SetFont("fonts/times.ttf");
-    // s_fontRenderer.SetScreenOrigin(.0f, .0f);
-    // s_fontRenderer.SetScreenSize(static_cast<float>(m_clientWidth), static_cast<float>(m_clientHeight));
+    s_cubeMap = LoadCubeMap();
 }
 
 void GraphicsDemo::Update(float dt)
 {
-    float time = System::Instance()->CurrentTime() * 0.25f;
-    float radius = 100.f;
-    float x = cosf(time) * radius;
-    float y = 150.f;
-    float z = sinf(time) * radius;
-    m_pointLights[0].position = glm::vec4(x, y, z, 1.0f);
-
-    //////////
-    
-    
-    glm::vec3 d = s_spotLight.GetDirection();
-    glm::vec3 longitudialTangent = glm::cross(d, glm::vec3(0, 1, 0));
-    glm::vec3 latittudialTangent = glm::cross(d, longitudialTangent);
-    const float SecPerFrame = 0.016f;
-    const float g = 9.8f;
-    s_speedX += g * -d.x* SecPerFrame;
-    d.x += s_speedX * SecPerFrame;
-    s_speedZ += g * -d.z * SecPerFrame;
-    d.z += s_speedZ * SecPerFrame;
-    s_spotLight.SetDirection(glm::normalize(d));
-
-    //////////
-
-    for (std::shared_ptr<Object> pObject : m_objects)
-    {
-        pObject->Update();
-    }
+    m_pScene->Update();
 }
 
 void GraphicsDemo::Render()
 {
     glViewport(0, 0, m_clientWidth, m_clientHeight);
     GET_AND_HANDLE_GL_ERROR();
+
     glClearColor(0, 0.8f, 0.7f, 1.0f);
     GET_AND_HANDLE_GL_ERROR();
+
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
 
-    DrawObjectCenter();
+    m_skyboxRenderer.Render(GetCamera(), s_cubeMap);
 
-    DrawPointLights();
+    m_sceneRenderer.Render(m_pScene);
 
-    DrawScene();
+    m_gizmoRenderer.Render(m_pScene);
 
-    s_fontRenderer.RenderText(U"Hi", 0, 100);
+    // s_fontRenderer.RenderText(U"Hi", 0, 100);
 
     glClear(GL_DEPTH_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
 
-    DrawPeekViewports();
+    m_peekViewportRenderer.Render(m_pScene);
 }
 
 void GraphicsDemo::Free()
 {
-    while (!m_objects.empty())
+    m_pScene->Free();
+    
+    if (s_cubeMap)
     {
-        m_objects.back()->Free();
-        m_objects.pop_back();
+        glDeleteTextures(1, &s_cubeMap);
+        s_cubeMap = 0;
     }
 }
 
@@ -180,10 +179,19 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_SIZE:
-        m_clientWidth = LOWORD(lParam);
-        m_clientHeight = HIWORD(lParam);
-        m_camera.SetFrustum(glm::pi<float>() * 0.25f, m_clientWidth / 0.5f, m_clientHeight / 0.5f,
-            0.1f, 1000.0f);
+    {
+        int width = LOWORD(lParam);
+        int height = HIWORD(lParam);
+
+        m_clientWidth = width;
+        m_clientHeight = height;
+
+        m_peekViewportRenderer.SetClientRect(width, height);
+
+        if( m_pScene )
+            GetCamera().SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
+                0.1f, 1000.0f);
+    }
 
     case WM_MOUSEMOVE:
     {
@@ -205,16 +213,16 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         if (wParam & MK_CONTROL && wParam & MK_MBUTTON)
         {
-            glm::vec3 disp = m_camera.GetCenter() - m_camera.GetPosition();
+            glm::vec3 disp = GetCamera().GetCenter() - GetCamera().GetPosition();
             if (dy > 0) {
                 for (int i = 0; i < dy; ++i) {
-                    m_camera.SetPosition(m_camera.GetPosition() - disp * 0.025f);
+                    GetCamera().SetPosition(GetCamera().GetPosition() - disp * 0.025f);
                 }
             }
             else if (dy < 0)
             {
                 for (int i = 0; i > dy; --i) {
-                    m_camera.SetPosition(m_camera.GetPosition() + disp * 0.05f);
+                    GetCamera().SetPosition(GetCamera().GetPosition() + disp * 0.05f);
                 }
 
             }
@@ -222,27 +230,27 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         else if (wParam & MK_SHIFT && wParam & MK_MBUTTON)
         {
-            glm::mat4x4 invEye = glm::inverse(m_camera.EyeMatrix());
+            glm::mat4x4 invEye = glm::inverse(GetCamera().EyeMatrix());
             glm::vec4 ex = invEye[0];
             glm::vec4 ey = invEye[1];
 
-            m_camera.MoveBy(glm::vec3(ex) * (float)dx);
-            m_camera.MoveBy(glm::vec3(ey) * -(float)dy);
+            GetCamera().MoveBy(glm::vec3(ex) * (float)dx);
+            GetCamera().MoveBy(glm::vec3(ey) * -(float)dy);
         }
 
         else if (wParam & MK_MBUTTON)
         {
             const float Speed = 0.02f;
             // relative displacement from center to eye
-            glm::vec3 r = m_camera.GetPosition() - m_camera.GetCenter();
+            glm::vec3 r = GetCamera().GetPosition() - GetCamera().GetCenter();
 
             // revolve around center horizontally
-            r = glm::rotate(r, -dx * Speed, m_camera.GetUp());
+            r = glm::rotate(r, -dx * Speed, GetCamera().GetUp());
 
             // revolve around center vertically
-            glm::vec3 right = glm::normalize(glm::cross(r, m_camera.GetUp()));
+            glm::vec3 right = glm::normalize(glm::cross(r, GetCamera().GetUp()));
             r = glm::rotate(r, dy * Speed, right);
-            m_camera.SetPosition(m_camera.GetCenter() + r);
+            GetCamera().SetPosition(GetCamera().GetCenter() + r);
         }
 
         m_lastMouseX = x;
@@ -255,16 +263,16 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         // ref : https://docs.microsoft.com/en-us/windows/desktop/inputdev/wm-mousewheel
         short wheel = HIWORD(wParam);
 
-        glm::vec3 disp = m_camera.GetCenter() - m_camera.GetPosition();
+        glm::vec3 disp = GetCamera().GetCenter() - GetCamera().GetPosition();
 
-        m_camera.SetPosition(m_camera.GetPosition() + disp * 0.025f * wheel / WHEEL_DELTA);
+        GetCamera().SetPosition(GetCamera().GetPosition() + disp * 0.025f * wheel / WHEEL_DELTA);
         break;
     }
 
     case WM_KEYUP:
         if (wParam == VK_R)
         {
-            m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+            GetCamera().LookAt(glm::vec3(50, 50, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         }
         break;
 
@@ -277,199 +285,7 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
 }
 
-void GraphicsDemo::RenderObject(ShaderProgram& program, Object& object)
+Camera& GraphicsDemo::GetCamera()
 {
-    program.Use();
-
-    SendMatrices(program, object);
-
-    object.Render(program);
-}
-
-void GraphicsDemo::AddGround()
-{
-    // Ground object
-    std::shared_ptr<Object> pGround(new Object);
-
-    // Ground mesh
-    pGround->AddMesh(GeneratePlane());
-
-    // Scale to cover large area
-    pGround->SetScale(glm::vec3(100, 1, 100));
-    m_objects.push_back(pGround);
-
-    // Material
-    std::shared_ptr<Material> pMaterial(new Material());
-    pMaterial->SetAmbientColor(1.0f, 1.0f, 1.0f, 1.0f);
-    pMaterial->SetDiffuseColor(0.4f, 0.26f, 0.13f, 1.0f);
-    // pMaterial->SetSpecularColor(0.8f, 0.8f, 0.8f, 1.0f);
-    pMaterial->SetSpecularColor(0, 0, 1.0f, 1.0f);
-    pMaterial->SetShininess(50.0f);
-
-    pGround->AddMaterial(pMaterial);
-}
-
-void GraphicsDemo::DrawPointLights()
-{
-    auto& program = ShaderPrograms::s_pointLight;
-
-    for( int i = 0; i < ActiveLightCount; ++i )
-    {
-        PointLight& pointLight = m_pointLights[i];
-
-        program.Use();
-        program.SendUniform("wCenterPos", glm::vec4(pointLight.position, 1));
-        program.SendUniform("wScale", 5.0f, 5.0f);
-        program.SendUniform("wvMatrix", 1, false, m_camera.EyeMatrix());
-        program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
-
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-        GET_AND_HANDLE_GL_ERROR();
-    }
-
-    
-
-    program.Use();
-    program.SendUniform("wCenterPos", glm::vec4(s_spotLight.GetPosition(), 1));
-    program.SendUniform("wScale", 5.0f, 5.0f);
-    program.SendUniform("wvMatrix", 1, false, m_camera.EyeMatrix());
-    program.SendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
-
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-    GET_AND_HANDLE_GL_ERROR();
-
-    
-}
-
-void GraphicsDemo::DrawScene()
-{
-    ShaderProgram program = ShaderPrograms::s_phong;
-
-    program.Use();
-
-    SendLights(program, ActiveLightCount);
-
-    for (auto& pObject : m_objects)
-    {
-        RenderObject(program, *pObject);
-    }
-}
-
-void GraphicsDemo::DrawPeekViewports()
-{
-    int peekViewWidth = m_clientWidth / 8;
-    int peekViewHeight = m_clientHeight / 8;
-    ShaderProgram programs[] = { ShaderPrograms::s_position,
-                                 ShaderPrograms::s_uv,
-                                 ShaderPrograms::s_normal,
-                                 ShaderPrograms::s_tangent};
-    for (int i = 0; i < _countof(programs); ++i)
-    {
-        glViewport(peekViewWidth * i, 0, peekViewWidth, peekViewHeight);
-        GET_AND_HANDLE_GL_ERROR();
-
-        for (auto& pObject : m_objects)
-        {
-            RenderObject(programs[i], *pObject);
-        }
-    }
-}
-
-void GraphicsDemo::DrawObjectCenter()
-{
-    ShaderProgram& program = ShaderPrograms::s_axes;
-
-    program.Use();
-
-    for (int i = 0; i < m_objects.size(); ++i)
-    {
-        std::shared_ptr<Object> pObject = m_objects[i];
-
-        SendMatrices(program, *pObject);
-        
-        glm::vec3 position = pObject->GetPosition();
-        
-        glDrawArrays(GL_LINES, 0, 6);
-    }
-}
-
-void GraphicsDemo::PrepareLights()
-{
-    m_pointLights.resize(MaximumLightCount);
-
-    for (int i = 0; i < MaximumLightCount; ++i)
-    {
-        std::stringstream name;
-        name << "light[" << i << "].Position";
-        float x = 2.0f * cosf((glm::two_pi<float>() / 5) * i) * 10.0f;
-        float z = 2.0f * sinf((glm::two_pi<float>() / 5) * i) * 10.0f;
-        m_pointLights[i].position = glm::vec4(x, 1.2f, z + 1.0f, 1.0f);
-    }
-    PointLight pl;
-
-    m_pointLights[0].la = glm::vec3(0.1f, 0.1f, 0.1f);
-    m_pointLights[0].ld = glm::vec3(1.0f, 1.0f, 1.0f);
-    m_pointLights[0].ls = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    m_pointLights.push_back(pl);
-
-    //////////
-    s_spotLight.SetPosition(glm::vec3(.0f, 100.0f, .0f));
-    s_spotLight.SetDirection(glm::normalize(glm::vec3(0.0f, -1.0f, -0.3f)));
-    s_spotLight.SetDiffuse(glm::vec3(1.0f, 1.0f, 1.0f));
-    s_spotLight.SetAmbientColor(glm::vec3(.0f, .0f, .0f));
-    s_spotLight.SetCutoff(glm::radians(50.f));
-    s_spotLight.SetExponent(50.0f);
-}
-
-void GraphicsDemo::SendPointLight(ShaderProgram& program, int index, PointLight& light)
-{
-    std::stringstream ss;
-
-    ss << "light[" << index << "].position";
-    program.SendUniform(ss.str().c_str(), m_camera.EyeMatrix() * glm::vec4(light.position, 1));
-    std::stringstream().swap(ss);
-
-    ss << "light[" << index << "].la";
-    program.SendUniform(ss.str().c_str(), light.la);
-    std::stringstream().swap(ss);
-
-    ss << "light[" << index << "].l";
-    program.SendUniform(ss.str().c_str(), light.ld);
-    std::stringstream().swap(ss);
-}
-
-void GraphicsDemo::SendSpotLight(ShaderProgram& program, SpotLight& spotLight)
-{ 
-    glm::mat4 viewMatrix = m_camera.EyeMatrix();
-    glm::vec3 position = viewMatrix * glm::vec4(spotLight.GetPosition(), 1);
-    program.TrySendUniform("spot.position", position);
-    program.TrySendUniform("spot.l", spotLight.GetDiffuse());
-    program.TrySendUniform("spot.la", spotLight.GetAmbient());
-    
-    glm::mat3 normalMatrix = glm::mat3(glm::vec3(viewMatrix[0]), glm::vec3(viewMatrix[1]), glm::vec3(viewMatrix[2]));
-    glm::vec3 direction = normalMatrix * spotLight.GetDirection();
-    program.TrySendUniform("spot.direction", direction);
-    program.TrySendUniform("spot.exponent", spotLight.GetExponent());
-    program.TrySendUniform("spot.cutoff", spotLight.GetCutoff());
-}
-
-void GraphicsDemo::SendLights(ShaderProgram& program, int count)
-{
-    for (int i = 0; i < count; ++i)
-    {
-        SendPointLight(program, i, m_pointLights[i]);
-    }
-
-    SendSpotLight(program, s_spotLight);
-}
-
-void GraphicsDemo::SendMatrices(ShaderProgram & program, Object& object)
-{
-    program.TrySendUniform("mwMatrix", 1, false, object.GetTransformMatrix());
-    glm::mat4x4 mvMatrix = m_camera.EyeMatrix() * object.GetTransformMatrix();
-    program.TrySendUniform("mvMatrix", 1, false, mvMatrix);
-    glm::mat3x3 normalMatrix = glm::transpose(glm::inverse(mvMatrix));
-    program.TrySendUniform("normalMatrix", 1, false, normalMatrix);
-    program.TrySendUniform("projMatrix", 1, false, m_camera.ProjectionMatrix());
+    return m_pScene->GetCamera();
 }

@@ -233,14 +233,14 @@ bool ShaderProgram::TrySendUniform(const char * name, float x, float y, float z,
     return true;
 }
 
-void ShaderProgram::SendUniform3fv(const char* name, int count, float* fv)
+void ShaderProgram::SendUniform3fv(const char* name, int count, const float* fv)
 {
     GLint location = GetUniformLocation(name);
     glUniform3fv(location, count, fv);
     GET_AND_HANDLE_GL_ERROR();
 }
 
-bool ShaderProgram::TrySendUniform3fv(const char * name, int count, float * fv)
+bool ShaderProgram::TrySendUniform3fv(const char * name, int count, const float * fv)
 {
     GLint location = glGetUniformLocation(m_program, name);
     if (location == -1)
@@ -251,14 +251,14 @@ bool ShaderProgram::TrySendUniform3fv(const char * name, int count, float * fv)
     return true;
 }
 
-void ShaderProgram::SendUniform4fv(const char* name, int count, float *fv)
+void ShaderProgram::SendUniform4fv(const char* name, int count, const float* fv)
 {
     GLint location = GetUniformLocation(name);
     glUniform4fv(location, count, fv);
     GET_AND_HANDLE_GL_ERROR();
 }
 
-bool ShaderProgram::TrySendUniform4fv(const char * name, int count, float * fv)
+bool ShaderProgram::TrySendUniform4fv(const char * name, int count, const float* fv)
 {
     GLint location = glGetUniformLocation(m_program, name);
     if (location == -1)

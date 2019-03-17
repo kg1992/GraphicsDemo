@@ -20,7 +20,8 @@ public:
     static ShaderProgram s_pointLight;
     static ShaderProgram s_phong;
     static ShaderProgram s_axes;
-    static ShaderProgram s_tangent;
+    static ShaderProgram s_normalMap;
+    static ShaderProgram s_skybox;
 
     static void Init();
 };

@@ -14,6 +14,7 @@
 #include "Mesh.h"
 #include "Material.h"
 #include "ShaderProgram.h"
+#include "Serialization.h"
 
 namespace
 {
@@ -187,6 +188,7 @@ void Object::Free()
 
 void Object::Render(ShaderProgram& program)
 {
+    program.TrySendUniform("uAnimationEnabled", m_pSkeleton ? GL_TRUE : GL_FALSE);
     if (m_pSkeleton)
     {
         glm::mat4 boneTransforms[MaximumBoneCount];
@@ -247,4 +249,84 @@ void Object::SetSkeleton(std::shared_ptr<Skeleton> pSkeleton)
 void Object::SetAnimator(std::shared_ptr<Animator> pAnimator)
 {
     m_pAnimator = pAnimator;
+}
+
+void Object::Serialize(std::ostream& os)
+{
+    Serialization::Write(os, m_position);
+    Serialization::Write(os, m_scale);
+    Serialization::Write(os, m_rotation);
+
+    // m_materials
+    int materialCount = static_cast<int>(m_materials.size());
+    Serialization::Write(os, materialCount);
+    for (int i = 0; i < materialCount; ++i)
+    {
+        m_materials[i]->Serialize(os);
+    }
+
+    // m_meshes
+    int meshCount = static_cast<int>(m_meshes.size());
+    Serialization::Write(os, meshCount);
+    for (int i = 0; i < meshCount; ++i)
+    {
+        m_meshes[i]->Serialize(os);
+    }
+
+    int skeletonCount = m_pSkeleton ? 1 : 0;
+    Serialization::Write(os, skeletonCount);
+    if (skeletonCount) {
+        m_pSkeleton->Serialize(os);
+    }
+
+    int animatorCount = m_pAnimator ? 1 : 0;
+    Serialization::Write(os, animatorCount);
+    if (animatorCount) {
+        m_pAnimator->Serialize(os);
+    }
+}
+
+void Object::Deserialize(std::istream& is)
+{
+    Free();
+
+    Serialization::Read(is, m_position);
+    Serialization::Read(is, m_scale);
+    Serialization::Read(is, m_rotation);
+
+    int materialCount = 0;
+    Serialization::Read(is, materialCount);
+    for (int i = 0; i < materialCount; ++i)
+    {
+        std::shared_ptr<Material> pMaterial(new Material());
+        pMaterial->Deserialize(is);
+        AddMaterial(pMaterial);
+    }
+
+    int meshesCount = 0;
+    Serialization::Read(is, meshesCount);
+    for( int i = 0; i < meshesCount; ++i )
+    {
+        std::shared_ptr<Mesh> pMesh(new Mesh());
+        pMesh->Deserialize(is);
+        AddMesh(pMesh);
+    }
+
+    int skeletonCount;
+    Serialization::Read(is, skeletonCount);
+    if (skeletonCount)
+    {
+        m_pSkeleton.reset(new Skeleton());
+        m_pSkeleton->Deserialize(is);
+    }
+
+    int animatorCount;
+    Serialization::Read(is, animatorCount);
+    if (animatorCount)
+    {
+        m_pAnimator.reset(new Animator());
+        m_pAnimator->Deserialize(is);
+    }
+
+    UpdateTransformMatrix();
 }

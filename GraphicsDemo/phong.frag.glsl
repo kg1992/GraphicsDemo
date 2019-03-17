@@ -8,12 +8,15 @@
 */
 #version 430 core
 
-const int LightCount = 1;
+const int MaximumPointLightCount = 5;
+const int ActivePointLightCount = 1;
+const int MaximumSpotLightCount = 5;
+const int ActiveSpotLightCount = 1;
 
 in vec2 vUv;
 in vec3 vEyePosition;
 in vec3 vNormal;
-in vec3 vTangentLights[LightCount];
+in vec3 vTangentLights[MaximumPointLightCount];
 in vec3 vTangentViewDir;
 
 layout( location = 0 ) out vec4 FragColor;
@@ -23,7 +26,7 @@ uniform struct LightInfo
 	vec4 position;
 	vec3 la;
 	vec3 l;
-} light[LightCount];
+} light[MaximumPointLightCount];
 
 uniform struct SpotLightInfo {
     vec3 position;  // Position in cam coords

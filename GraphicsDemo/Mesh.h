@@ -16,6 +16,8 @@
 
 #include "AttributeArray.h"
 
+struct RecordHeader;
+
 class Mesh
 {
 public:
@@ -40,6 +42,10 @@ public:
     int GetSubMeshCount();
 
     SubMesh GetSubMesh(int i);
+
+    void Serialize(std::ostream& os);
+
+    void Deserialize(std::istream& is);
 
 private:
     std::vector<SubMesh> m_subMeshes;

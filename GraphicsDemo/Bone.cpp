@@ -13,6 +13,7 @@
 */
 #include "Common.h"
 #include "Bone.h"
+#include "Serialization.h"
 
 Bone::Bone()
     : m_parent(DUMMY_PARENT_NODE_INDEX)
@@ -89,4 +90,26 @@ void Bone::SetAnimationTransform(const glm::mat4 & mat)
 const glm::mat4 & Bone::GetAnimationTrasnform()
 {
     return m_animationTransform;
+}
+
+void Bone::Serialize(std::ostream& os)
+{
+    Serialization::Write(os, m_parent);
+    Serialization::Write(os, m_name);
+    Serialization::Write(os, m_transform);
+    Serialization::Write(os, m_animationTransform);
+    Serialization::Write(os, m_invTransform);
+    Serialization::Write(os, m_linkTransform);
+    Serialization::Write(os, m_invLinkTransform);
+}
+
+void Bone::Deserialize(std::istream& is)
+{
+    Serialization::Read(is, m_parent);
+    Serialization::Read(is, m_name);
+    Serialization::Read(is, m_transform);
+    Serialization::Read(is, m_animationTransform);
+    Serialization::Read(is, m_invTransform);
+    Serialization::Read(is, m_linkTransform);
+    Serialization::Read(is, m_invLinkTransform);
 }

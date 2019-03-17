@@ -47,6 +47,10 @@ public:
 
     const glm::mat4& GetAnimationTrasnform();
 
+    void Serialize(std::ostream& os);
+
+    void Deserialize(std::istream& is);
+
 private:
     int m_parent;
     std::string m_name;

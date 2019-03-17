@@ -14,6 +14,7 @@
 class Mesh;
 class Material;
 class ShaderProgram;
+struct RecordHeader;
 
 class Object
 {
@@ -69,6 +70,12 @@ public:
     
     // Sets animator. the last set animator will be released.
     void SetAnimator(std::shared_ptr<Animator> pAnimator);
+
+    // Serialize object to the given stream 'os' in binary format
+    void Serialize(std::ostream& os);
+
+    // Deserialize objet to the given stream 'is' in binary format
+    void Deserialize(std::istream& is);
 
 private:
     glm::vec3 m_position;

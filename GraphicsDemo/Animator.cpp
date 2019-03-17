@@ -16,6 +16,7 @@
 #include "Object.h"
 #include "Skeleton.h"
 #include "Animation.h"
+#include "Serialization.h"
 
 Animator::Animator()
     : m_currentAnimation()
@@ -50,6 +51,20 @@ void Animator::Update(Object& object)
     IncreaseAnimationTime();
 }
 
+void Animator::Serialize(std::ostream& os) const
+{
+    m_currentAnimation->Serialize(os);
+
+    Serialization::Write(os, m_animationTime);
+}
+
+void Animator::Deserialize(std::istream& is)
+{
+    m_currentAnimation.reset(new Animation(""));
+    m_currentAnimation->Deserialize(is);
+
+    Serialization::Read(is, m_animationTime);
+}
 void Animator::IncreaseAnimationTime()
 {
     m_animationTime += 0.016f;

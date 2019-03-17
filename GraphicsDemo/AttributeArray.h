@@ -8,9 +8,21 @@
 
 #include <glad.h>
 
+struct RecordHeader;
+
 class AttributeArray
 {
 public:
+    AttributeArray()
+        : m_bo(0)
+        , m_size(0)
+        , m_type(GL_INVALID_ENUM)
+        , m_stride(0)
+        , m_offset(0)
+        , m_attributeCount(0)
+    {
+    }
+
     AttributeArray(int size, GLenum type, int stride, const void* offset);
 
     void Fill(GLsizeiptr size, void* data);
@@ -19,10 +31,11 @@ public:
 
     void Free();
 
-    int GetAttributeCount()
-    {
-        return m_attributeCount;
-    }
+    int GetAttributeCount();
+
+    void Serialize(std::ostream& os);
+
+    void Deserialize(std::istream& is);
 
 private:
     GLuint m_bo;
