@@ -14,6 +14,7 @@
 #include "SceneRenderer.h"
 #include "PeekViewportRenderer.h"
 #include "GizmoRenderer.h"
+#include "SkyboxRenderer.h"
 
 class Object;
 class ShaderProgram;
@@ -40,6 +41,7 @@ private:
     SceneRenderer m_sceneRenderer;
     PeekViewportRenderer m_peekViewportRenderer;
     GizmoRenderer m_gizmoRenderer;
+    SkyboxRenderer m_skyboxRenderer;
 
     Camera& GetCamera();
 };

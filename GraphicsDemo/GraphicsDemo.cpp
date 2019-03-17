@@ -60,6 +60,57 @@ namespace
     const int ActiveLightCount = 1;
     const int MaximumLightCount = 5;
     FontRenderer s_fontRenderer;
+    GLuint s_cubeMap;
+
+    std::shared_ptr<Scene> LoadMyScene()
+    {
+        const std::string OutPath = "Resources/Scene/";
+        const std::string OutMyScene = OutPath + "KnightPunchingScene.dat";
+        std::shared_ptr<Scene> pScene(new Scene);
+        std::ifstream ifs(OutMyScene, std::ios_base::in | std::ios_base::binary);
+        pScene->Deserialize(ifs);
+        ifs.close();
+
+        return pScene;
+    }
+
+    GLuint LoadCubeMap()
+    {
+        const std::string SkyboxLocation = "./Resources/Skybox/mp_orbital/";
+        const std::string SkyboxName = "orbital-element";
+        const std::string Suffixes[] = { "posx", "negx", "posy", "negy", "posz", "negz" };
+        const std::string Extension = ".tga";
+        
+        GLuint t;
+        glGenTextures(1, &t);
+        GET_AND_HANDLE_GL_ERROR();
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, t);
+        GET_AND_HANDLE_GL_ERROR();
+
+        for (int i = 0; i < _countof(Suffixes); ++i)
+        {
+            GLint w, h, n;
+            const std::string texName = SkyboxLocation + SkyboxName + "_" + Suffixes[i] + Extension;
+            stbi_uc* pData = stbi_load(texName.c_str(), &w, &h, &n, 0);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, pData);
+            GET_AND_HANDLE_GL_ERROR();
+            stbi_image_free(pData);
+        }
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        GET_AND_HANDLE_GL_ERROR();
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        GET_AND_HANDLE_GL_ERROR();
+
+        return t;
+    }
 }
 
 GraphicsDemo::GraphicsDemo()
@@ -75,16 +126,11 @@ void GraphicsDemo::OnStart()
     // Load, compile, link shader programs.
     ShaderPrograms::Init();
 
-    const std::string OutPath = "Resources/Scene/";
-    const std::string OutMyScene = OutPath + "KnightPunchingScene.dat";
-    std::shared_ptr<Scene> pScene(new Scene);
-    std::ifstream ifs(OutMyScene, std::ios_base::in | std::ios_base::binary);
-    pScene->Deserialize(ifs);
-    ifs.close();
-
-    m_pScene = pScene;
+    m_pScene = LoadMyScene();
     
     m_pScene->Init();
+
+    s_cubeMap = LoadCubeMap();
 }
 
 void GraphicsDemo::Update(float dt)
@@ -103,6 +149,8 @@ void GraphicsDemo::Render()
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
 
+    m_skyboxRenderer.Render(GetCamera(), s_cubeMap);
+
     m_sceneRenderer.Render(m_pScene);
 
     m_gizmoRenderer.Render(m_pScene);
@@ -118,6 +166,12 @@ void GraphicsDemo::Render()
 void GraphicsDemo::Free()
 {
     m_pScene->Free();
+    
+    if (s_cubeMap)
+    {
+        glDeleteTextures(1, &s_cubeMap);
+        s_cubeMap = 0;
+    }
 }
 
 void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

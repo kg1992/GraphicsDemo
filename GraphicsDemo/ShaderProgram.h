@@ -40,10 +40,10 @@ public:
     bool TrySendUniform(const char* name, float x, float y, float z);
     void SendUniform(const char* name, float x, float y, float z, float w);
     bool TrySendUniform(const char* name, float x, float y, float z, float w);
-    void SendUniform3fv(const char* name, int count, float* fv);
-    bool TrySendUniform3fv(const char* name, int count, float* fv);
-    void SendUniform4fv(const char* name, int count, float *fv);
-    bool TrySendUniform4fv(const char* name, int count, float *fv);
+    void SendUniform3fv(const char* name, int count, const float* fv);
+    bool TrySendUniform3fv(const char* name, int count, const float* fv);
+    void SendUniform4fv(const char* name, int count, const float *fv);
+    bool TrySendUniform4fv(const char* name, int count, const float *fv);
     void SendUniform(const char* name, int i);
     bool TrySendUniform(const char* name, int i);
     void SendUniform(const char* name, unsigned int ui);

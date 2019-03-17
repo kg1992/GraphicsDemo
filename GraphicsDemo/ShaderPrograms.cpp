@@ -26,6 +26,8 @@ void ShaderPrograms::Init()
         .Init("Axes", "axes.vert.glsl", "color.frag.glsl");
     s_normalMap
         .Init("NormalMap", "basic.vert.glsl", "normalMap.frag.glsl");
+    s_skybox
+        .Init("Skybox", "skybox.vert.glsl", "skybox.frag.glsl");
 }
 
 ShaderProgram ShaderPrograms::s_position;
@@ -36,3 +38,4 @@ ShaderProgram ShaderPrograms::s_pointLight;
 ShaderProgram ShaderPrograms::s_phong;
 ShaderProgram ShaderPrograms::s_axes;
 ShaderProgram ShaderPrograms::s_normalMap;
+ShaderProgram ShaderPrograms::s_skybox;

@@ -21,6 +21,7 @@ public:
     static ShaderProgram s_phong;
     static ShaderProgram s_axes;
     static ShaderProgram s_normalMap;
+    static ShaderProgram s_skybox;
 
     static void Init();
 };
