@@ -136,6 +136,13 @@ void GraphicsDemo::OnStart()
 void GraphicsDemo::Update(float dt)
 {
     m_pScene->Update();
+
+    float time = System::Instance()->CurrentTime() * 0.25f;
+    float radius = 100.f;
+    float x = cosf(time) * radius;
+    float y = 150.f;
+    float z = sinf(time) * radius;
+    m_pScene->GetPointLight(0).position = glm::vec4(x, y, z, 1.0f);
 }
 
 void GraphicsDemo::Render()
