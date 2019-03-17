@@ -97,3 +97,10 @@ void Animation::Deserialize(std::istream& is)
     }
     Serialization::Read(is, m_length);
 }
+
+void Animation::CopyTo(Animation& dest)
+{
+    dest.m_name = m_name;
+    dest.m_keyFrames = m_keyFrames;
+    dest.m_length = m_length;
+}

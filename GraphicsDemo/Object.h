@@ -77,6 +77,9 @@ public:
     // Deserialize objet to the given stream 'is' in binary format
     void Deserialize(std::istream& is);
 
+    // Duplicate object
+    void CopyTo(Object& dest);
+
 private:
     glm::vec3 m_position;
     glm::vec3 m_scale;

@@ -330,3 +330,25 @@ void Object::Deserialize(std::istream& is)
 
     UpdateTransformMatrix();
 }
+
+void Object::CopyTo(Object& dest)
+{
+    dest.m_position = m_position;
+    dest.m_scale = m_scale;
+    dest.m_rotation = m_rotation;
+    // model to world transform matrix
+    dest.m_mwMatrix = m_mwMatrix;
+
+    dest.m_meshes = m_meshes;
+    dest.m_materials = m_materials;
+    if (m_pSkeleton)
+    {
+        dest.m_pSkeleton.reset(new Skeleton);
+        m_pSkeleton->CopyTo(*dest.m_pSkeleton);
+    }
+    if (m_pAnimator)
+    {
+        dest.m_pAnimator.reset(new Animator);
+        m_pAnimator->CopyTo(*dest.m_pAnimator);
+    }
+}

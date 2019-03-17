@@ -51,6 +51,8 @@ public:
 
     void Deserialize(std::istream& is);
 
+    void CopyTo(Animator& dest);
+
 private:
     // Currently playing animation.
     std::shared_ptr<Animation> m_currentAnimation;

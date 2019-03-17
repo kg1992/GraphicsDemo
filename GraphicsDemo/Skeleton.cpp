@@ -74,3 +74,8 @@ void Skeleton::Deserialize(std::istream& is)
         m_bones.push_back(bone);
     }
 }
+
+void Skeleton::CopyTo(Skeleton& dest)
+{
+    dest.m_bones.assign(m_bones.begin(), m_bones.end());
+}

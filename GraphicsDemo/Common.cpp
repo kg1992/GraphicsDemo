@@ -1,6 +1,4 @@
 /*
-    Common.cpp
-
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
     References : 

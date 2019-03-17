@@ -65,6 +65,14 @@ void Animator::Deserialize(std::istream& is)
 
     Serialization::Read(is, m_animationTime);
 }
+
+void Animator::CopyTo(Animator& dest)
+{
+    dest.m_currentAnimation = m_currentAnimation;
+
+    dest.m_animationTime = m_animationTime;
+}
+
 void Animator::IncreaseAnimationTime()
 {
     m_animationTime += 0.016f;

@@ -39,7 +39,12 @@ public:
 
     void Deserialize(std::istream& is);
 
+    void CopyTo(Skeleton& dest);
+
 private:
+    // List of bones represent a Skeleton.
+    // Each bone not only contains the original location of the bone placed by designer ( Bind Pose )
+    // But also the mutated bone transform applied by 'Animator' object.
     std::vector<Bone> m_bones;
 };
 

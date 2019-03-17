@@ -127,6 +127,18 @@ void GraphicsDemo::OnStart()
     ShaderPrograms::Init();
 
     m_pScene = LoadMyScene();
+
+    for (int i = 0; i < 2; ++i)
+    {
+        for (int j = 0; j < 1; ++j)
+        {
+            const float Distance = 100.f;
+            std::shared_ptr<Object> pObject(new Object);
+            m_pScene->GetSceneObject(0)->CopyTo(*pObject);
+            pObject->SetPosition(glm::vec3(Distance * i, 0, Distance * j));
+            m_pScene->AddSceneObject(pObject);
+        }
+    }
     
     m_pScene->Init();
 

@@ -56,9 +56,14 @@ public:
 
     void Deserialize(std::istream& is);
 
+    void CopyTo(Animation& dest);
+
 private:
+    // Name of the animation
     std::string m_name;
+    // All list of keyframes
     std::vector<KeyFrame> m_keyFrames;
+    // Entire length of the animation
     float m_length;
 };
 
