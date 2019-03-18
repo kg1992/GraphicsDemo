@@ -8,26 +8,35 @@
 #include "Common.h"
 #include "ShaderPrograms.h"
 
+namespace
+{
+    const std::string ShaderFileLocation = "./Resources/Shader/";
+    const std::string ResolveShaderFilename(const char* const filename)
+    {
+        return ShaderFileLocation + filename;
+    }
+}
+
 void ShaderPrograms::Init()
 {
     s_position
-        .Init("Position", "basic.vert.glsl", "position.frag.glsl");
+        .Init("Position", ResolveShaderFilename("basic.vert.glsl"), ResolveShaderFilename("position.frag.glsl"));
     s_uv
-        .Init("UV", "basic.vert.glsl", "uv.frag.glsl");
+        .Init("UV", ResolveShaderFilename("basic.vert.glsl"), ResolveShaderFilename("uv.frag.glsl"));
     s_normal
-        .Init("Normal", "basic.vert.glsl", "normal.frag.glsl");
+        .Init("Normal", ResolveShaderFilename("basic.vert.glsl"), ResolveShaderFilename("normal.frag.glsl"));
     s_plane
-        .Init("Plane", "billboard.vert.glsl", "uv.frag.glsl");
+        .Init("Plane", ResolveShaderFilename("billboard.vert.glsl"), ResolveShaderFilename("uv.frag.glsl"));
     s_pointLight
-        .Init("Billboard", "billboard.vert.glsl", "circle.frag.glsl");
+        .Init("Billboard", ResolveShaderFilename("billboard.vert.glsl"), ResolveShaderFilename("circle.frag.glsl"));
     s_phong
-        .Init("Phong", "phong.vert.glsl", "phong.frag.glsl");
+        .Init("Phong", ResolveShaderFilename("phong.vert.glsl"), ResolveShaderFilename("phong.frag.glsl"));
     s_axes
-        .Init("Axes", "axes.vert.glsl", "color.frag.glsl");
+        .Init("Axes", ResolveShaderFilename("axes.vert.glsl"), ResolveShaderFilename("color.frag.glsl"));
     s_normalMap
-        .Init("NormalMap", "basic.vert.glsl", "normalMap.frag.glsl");
+        .Init("NormalMap", ResolveShaderFilename("basic.vert.glsl"), ResolveShaderFilename("normalMap.frag.glsl"));
     s_skybox
-        .Init("Skybox", "skybox.vert.glsl", "skybox.frag.glsl");
+        .Init("Skybox", ResolveShaderFilename("skybox.vert.glsl"), ResolveShaderFilename("skybox.frag.glsl"));
 }
 
 ShaderProgram ShaderPrograms::s_position;

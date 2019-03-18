@@ -99,7 +99,7 @@ GLuint ShaderProgram::CompileShaderFromSource(GLenum type, const char* source)
     return shader;
 }
 
-bool ShaderProgram::Init(const char* name, const char* vertexShaderFilename, const char* fragmentShaderFilename)
+bool ShaderProgram::Init(const std::string& name, const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename)
 {
     GLuint vertexShader = CompileShaderFromSourceFile(GL_VERTEX_SHADER, vertexShaderFilename);
     GLuint fragmentShader = CompileShaderFromSourceFile(GL_FRAGMENT_SHADER, fragmentShaderFilename);

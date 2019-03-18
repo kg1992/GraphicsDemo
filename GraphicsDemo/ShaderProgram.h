@@ -15,7 +15,7 @@
 class ShaderProgram
 {
 public:
-    bool Init(const char* name, const char* vertexShaderFilename, const char* fragmentShaderFilename);
+    bool Init(const std::string& name, const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
 
     bool InitBySource(const char* name, const char* vertexShaderSource, const char* fragmentShaderSource);
 
