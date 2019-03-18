@@ -44,6 +44,9 @@ private:
     SkyboxRenderer m_skyboxRenderer;
 
     Camera& GetCamera();
+
+    bool SaveScene(const std::string& sceneName);
+    bool LoadScene(const std::string& sceneName);
 };
 
 #endif

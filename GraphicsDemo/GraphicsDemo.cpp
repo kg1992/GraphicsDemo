@@ -63,20 +63,9 @@ namespace
 
     FontRenderer s_fontRenderer;
     GLuint s_cubeMap;
-
+    bool s_bCommandInputState = false;
+    std::string s_command;
     float s_lastTime;
-
-    std::shared_ptr<Scene> LoadMyScene()
-    {
-        const std::string OutPath = "Resources/Scene/";
-        const std::string OutMyScene = OutPath + "KnightPunchingScene.dat";
-        std::shared_ptr<Scene> pScene(new Scene);
-        std::ifstream ifs(OutMyScene, std::ios_base::in | std::ios_base::binary);
-        pScene->Deserialize(ifs);
-        ifs.close();
-
-        return pScene;
-    }
 
     GLuint LoadCubeMap()
     {
@@ -126,6 +115,78 @@ namespace
         s_fontRenderer.RenderText(std::u32string(s.begin(), s.end()), 0, 100);
         s_lastTime = time;
     }
+
+    void DisplayCommand()
+    {
+        if (s_bCommandInputState)
+        {
+            auto displayText = ">" + s_command;
+            s_fontRenderer.RenderText(std::u32string(displayText.begin(), displayText.end()), 0, 300 - 32);
+        }
+    }
+
+    std::vector<std::string> TokenizeCommand(const std::string& str)
+    {
+        std::vector<std::string> items;
+        std::string token;
+        bool InQuotation = false;
+        token.reserve(0x100);
+        for (int i = 0; i < str.size(); ++i)
+        {
+            char c = str[i];
+
+            if (!InQuotation)
+            {
+                if (c == '"')
+                {
+                    InQuotation = true;
+                    continue;
+                }
+
+                if (std::isspace(c, std::locale("C")))
+                {
+                    if (!token.empty())
+                    {
+                        items.push_back(token);
+                        token.resize(0);
+                        continue;
+                    }
+                }
+            }
+            else
+            {
+                if (c == '"')
+                {
+                    items.push_back(token);
+                    token.resize(0);
+                    InQuotation = false;
+                    continue;
+                }
+            }
+
+            token += c;
+        }
+
+        if (!token.empty())
+        {
+            items.push_back(token);
+        }
+
+        return std::move(items);
+    }
+
+    bool CaseInsensitiveCompare(const std::string& lhs, const std::string& rhs)
+    {
+        static std::locale s_locale("C");
+        for (int i = 0; i < lhs.size(); ++i)
+        {
+            if (std::tolower(lhs[0], s_locale) != std::tolower(rhs[0], s_locale))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 GraphicsDemo::GraphicsDemo()
@@ -134,7 +195,6 @@ GraphicsDemo::GraphicsDemo()
     , m_mousePosRecordStarted(false)
     , m_pScene(new KnightPunchingScene())
 {
-    // m_pScene = LoadMyScene();
 }
 
 void GraphicsDemo::OnStart()
@@ -181,6 +241,8 @@ void GraphicsDemo::Render()
 
     DisplayFps();
 
+    DisplayCommand();
+
     glClear(GL_DEPTH_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
 
@@ -198,6 +260,9 @@ void GraphicsDemo::Free()
     }
 }
 
+
+
+// Ref: https://docs.microsoft.com/en-us/windows/desktop/inputdev/using-keyboard-input
 void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -297,9 +362,83 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     }
 
+    case WM_CHAR:
+        switch (wParam)
+        {
+        case 0x08:
+            // Process a backspace.
+            if (s_bCommandInputState && !s_command.empty())
+                s_command.pop_back();
+            break;
+
+        case 0x0A:
+            // Process a linefeed.
+            break;
+
+        case 0x1B:
+            // Process an escape. 
+            if (s_bCommandInputState)
+            {
+                s_bCommandInputState = false;
+            }
+            break;
+
+        case 0x09:
+            // Process a tab. 
+            break;
+
+        case 0x0D:
+            // Process a carriage return. 
+            if (s_bCommandInputState)
+            {
+                std::vector<std::string> tokens(TokenizeCommand(s_command));
+                if (tokens.size() > 0 && CaseInsensitiveCompare(tokens[0], "load"))
+                {
+                    if (tokens.size() > 1 && CaseInsensitiveCompare(tokens[1], "scene"))
+                    {
+                        if (tokens.size() > 2)
+                        {
+                            LoadScene(tokens[2]);
+                        }
+                    }
+                }
+
+                if (tokens.size() > 0 && CaseInsensitiveCompare(tokens[0], "save"))
+                {
+                    if (tokens.size() > 1 && CaseInsensitiveCompare(tokens[1], "scene"))
+                    {
+                        if (tokens.size() > 2)
+                        {
+                            SaveScene(tokens[2]);
+                        }
+                    }
+                }
+
+                s_command.resize(0);
+                s_bCommandInputState = false;
+            }
+            break;
+
+        default:
+            // Process displayable characters. 
+            if (s_bCommandInputState)
+            {
+                const char keyCode = static_cast<char>(wParam);
+                s_command.push_back(keyCode);
+            }
+
+            break;
+        }
+        
+        break;
 
     case WM_KEYDOWN:
     {
+        if (s_bCommandInputState)
+        {
+            return;
+        }
+
         Camera& camera = GetCamera();
         glm::vec3 disp(0.0f);
         if (wParam == VK_W)
@@ -334,15 +473,19 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_KEYUP:
+        if (s_bCommandInputState)
+            return;
+
         if (wParam == VK_R)
         {
             GetCamera().LookAt(glm::vec3(50, 50, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         }
-        if (wParam == VK_T)
+
+        if (wParam == VK_OEM_3)
         {
-            std::ofstream ofs("Resources/Scene/MyScene.dat", std::ios::binary | std::ios::out);
-            m_pScene->Serialize(ofs);
+            s_bCommandInputState = true;
         }
+        
         break;
 
 
@@ -352,6 +495,38 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_KILLFOCUS: case WM_SETFOCUS:
         break;
     }
+}
+
+bool GraphicsDemo::LoadScene(const std::string& sceneName)
+{
+    const char* const OutPath = "Resources/Scene/";
+    const char* const Extension = ".dat";
+    const std::string Filename = OutPath + sceneName + Extension;
+    
+    std::ifstream ifs(Filename, std::ios_base::in | std::ios_base::binary);
+    if (!ifs)
+        return false;
+    
+    std::shared_ptr<Scene> pScene(new Scene);
+    pScene->Deserialize(ifs);
+    ifs.close();
+
+    m_pScene->Free();
+    m_pScene = pScene;
+
+    return true;
+}
+
+bool GraphicsDemo::SaveScene(const std::string& sceneName)
+{
+    const char* const OutPath = "Resources/Scene/";
+    const char* const Extension = ".dat";
+    const std::string Filename = OutPath + sceneName + Extension;
+    std::ofstream ofs(Filename, std::ios::binary | std::ios::out);
+    if (!ofs)
+        return false;
+    m_pScene->Serialize(ofs);
+    return true;
 }
 
 Camera& GraphicsDemo::GetCamera()

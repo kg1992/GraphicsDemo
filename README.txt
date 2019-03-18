@@ -25,4 +25,7 @@ Shift + Wheel Down + Mouse Move = Slide Camera
 W, A, S, D, Shift, Space = Control camera
 
 R = Reset Camera
-T = Export Scene
+
+` = trigger command input
+	save scene [scenename] - generates [scenename].dat to Resources/Scene folder.
+	load scene [scenename] - loads [sceneanme].dat
