@@ -212,6 +212,7 @@
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="Skeleton.h" />
     <ClInclude Include="SkyboxRenderer.h" />
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="System.h" />
     <ClInclude Include="SystemComponent.h" />
