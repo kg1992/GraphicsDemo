@@ -62,6 +62,8 @@ namespace
     FontRenderer s_fontRenderer;
     GLuint s_cubeMap;
 
+    float s_lastTime;
+
     std::shared_ptr<Scene> LoadMyScene()
     {
         const std::string OutPath = "Resources/Scene/";
@@ -76,6 +78,7 @@ namespace
 
     GLuint LoadCubeMap()
     {
+        stbi_set_flip_vertically_on_load(false);
         const std::string SkyboxLocation = "./Resources/Skybox/mp_orbital/";
         const std::string SkyboxName = "orbital-element";
         const std::string Suffixes[] = { "posx", "negx", "posy", "negy", "posz", "negz" };
@@ -111,6 +114,16 @@ namespace
 
         return t;
     }
+
+    void DisplayFps()
+    {
+        float time = System::Instance()->CurrentTime();
+        std::stringstream ss;
+        ss << "FPS : " << std::round(1.0f / (time - s_lastTime));
+        std::string s = ss.str();
+        s_fontRenderer.RenderText(std::u32string(s.begin(), s.end()), 0, 100);
+        s_lastTime = time;
+    }
 }
 
 GraphicsDemo::GraphicsDemo()
@@ -143,6 +156,9 @@ void GraphicsDemo::OnStart()
     m_pScene->Init();
 
     s_cubeMap = LoadCubeMap();
+
+    s_fontRenderer.SetFont("./fonts/times.ttf");
+    s_fontRenderer.SetGlyphSize(48);
 }
 
 void GraphicsDemo::Update(float dt)
@@ -174,7 +190,7 @@ void GraphicsDemo::Render()
 
     m_gizmoRenderer.Render(m_pScene);
 
-    // s_fontRenderer.RenderText(U"Hi", 0, 100);
+    DisplayFps();
 
     glClear(GL_DEPTH_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
@@ -204,6 +220,8 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         m_clientWidth = width;
         m_clientHeight = height;
+
+        s_fontRenderer.SetScreenSize(static_cast<float>(width), static_cast<float>(height));
 
         m_peekViewportRenderer.SetClientRect(width, height);
 

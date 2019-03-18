@@ -1,12 +1,13 @@
 /*
-    FontRenderer.h
-
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
     Dependencies : 
         Freetype - used to load font file into memory
         OpenGL - used to render text
         GLM - for vector, matrix calculation
+
+    References :
+        http://soen.kr/lecture/library/freetype/ft2.htm
 
     FontRenderer class definition
 */

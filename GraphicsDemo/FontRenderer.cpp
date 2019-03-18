@@ -1,6 +1,4 @@
 /*
-    FontRenderer.cpp
-
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
     Dependencies :
@@ -8,10 +6,49 @@
         OpenGL - used to render text
         GLM - for vector, matrix calculation
 
+    References :
+        http://soen.kr/lecture/library/freetype/ft2.htm
+
     FontRenderer class implementation.
+
+    * Note about "26.6 fixed-point pixel coordinate".
+    FreeType uses specific fixed point 32-bit numeric type.
+    The significant 26 bits are integer part, and the last 6 bits are for fractional part.
+    We can apply (>> 6) (shift to right by 6 bits) to truncate fractional part.
+
+    * Note about 'Point' 'Pixel' 'Inch'
+
+    In real world, 72.26 points = 1 inch.
+    In computer graphics, 72 points = 1 inch for convinence. ... (1)
+
+    To convert point to 'pixel' we need to know 'resolution'
+    The resolution is represented with unit 'dpi' (dots per inch)
+    If a printer has 600 dpi resolution, it means printer can put 600 dots in an inch;
+    the higher the dpi, the higher the precision.
+    While a printer will put 'dots' on the paper,
+    display device will put 'pixels' on the screen.
+    So to speark for screen, it is more like 'ppi'(pixels per inch) than 'dpi'(dots per inch)
+    
+    Thus, with the above fact and equation (1) we can say,
+
+    (Font size in pixel unit) = point / 72   *   resolution 
+                                ----------       ----------
+                    font size in inch(inch)      pixels per inch(pixel/inch)
+
+    GetDeviceCaps function can be used to acquire the resolution of the display device.
+    However, in reality, it is impossible to find and use perfect size,
+    because there are too many variable ( user display settings, projector, mag/minification )
+
+    Sometimes application just picks a resolution and sticks to it.
+    i.e. Macintoshi 72 dpi for convinient computation
+    i.e. Windows 96 dpi for bigger font
+
+    One may use FT_Set_Pixel_Sizes() instead of FT_Set_Char_Size to set the size of font
+    with pixel unit instead of point.
 */
 #include "Common.h"
 #include "FontRenderer.h"
+#include "Errors.h"
 
 class FontRenderer::SharedData
 {
@@ -212,20 +249,19 @@ void FontRenderer::RenderText(const std::u32string& str
         float height = static_cast<float>((cbox.yMax - cbox.yMin) >> 6);
         float cx = static_cast<float>((cbox.xMin + cbox.xMax) >> 7);
         float cy = static_cast<float>((cbox.yMin + cbox.yMax) >> 7);
-        glm::mat4 transform(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-        transform = glm::translate(glm::vec3((pen_x + cx * font_scale) / screen_width * 2
+        glm::vec3 translate((pen_x + cx * font_scale) / screen_width * 2
             , (pen_y + cy * font_scale) / screen_height * 2
-            , 0))
+            , 0);
+        glm::mat4 transform = glm::translate(translate)
             * glm::scale(glm::vec3(width * font_scale / screen_width * 2
                 , height * font_scale / screen_height * 2
                 , 1));
-        auto loc = glGetUniformLocation(gl_program, "uTransform");
-        glUniformMatrix4fv(loc, 1, GL_FALSE, &transform[0][0]);
-        glerror = glGetError(); if (glerror) GetReportStream() << glerror << std::endl;
-        loc = glGetUniformLocation(gl_program, "uTexture");
-        glerror = glGetError(); if (glerror) GetReportStream() << glerror << std::endl;
-        glUniform1i(loc, 0);
+        glUniformMatrix4fv(glGetUniformLocation(gl_program, "uTransform"), 1, GL_FALSE, &transform[0][0]);
+        GET_AND_HANDLE_GL_ERROR();
+        glUniform1i(glGetUniformLocation(gl_program, "uTexture"), 0);
+        GET_AND_HANDLE_GL_ERROR();
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        GET_AND_HANDLE_GL_ERROR();
         pen_x += (glyphMetrics.horiAdvance >> 6) * font_scale;
         FT_Done_Glyph(glyph);
     }

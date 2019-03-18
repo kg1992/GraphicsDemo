@@ -40,6 +40,8 @@
 #include <stack>
 #include <iomanip>
 #include <iterator>
+#include <locale>
+#include <codecvt>
 
 #include <Windows.h>
 #include <Windowsx.h>

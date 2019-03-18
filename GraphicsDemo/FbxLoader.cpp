@@ -88,10 +88,10 @@ namespace
     // 
     bool LoadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject)
     {
-        int imageWidth, imageHeight, channelCount;
-
         // OpenGL Texture pixel data must start from bottom-left whereas actual file data usually has data starting from top-left
         stbi_set_flip_vertically_on_load(true);
+
+        int imageWidth, imageHeight, channelCount;
 
         unsigned char* data = stbi_load(pFilePath.Buffer(), &imageWidth, &imageHeight, &channelCount, 0);
 
@@ -337,21 +337,20 @@ void FbxLoader::Load(const char* filename)
         return;
     }
 
-    // Convert Axis System to OpenGL
-    FbxAxisSystem SceneAxisSystem = m_pScene->GetGlobalSettings().GetAxisSystem();
-    FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eRightHanded);
-    if (SceneAxisSystem != OurAxisSystem)
-    {
-        OurAxisSystem.ConvertScene(m_pScene);
-    }
+    //// Convert Axis System to OpenGL
+    //FbxAxisSystem SceneAxisSystem = m_pScene->GetGlobalSettings().GetAxisSystem();
+    //FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eRightHanded);
+    //if (SceneAxisSystem != OurAxisSystem)
+    //{
+    //    OurAxisSystem.ConvertScene(m_pScene);
+    //}
 
-    // Convert Unit System to what is used in this example, if needed
-    FbxSystemUnit SceneSystemUnit = m_pScene->GetGlobalSettings().GetSystemUnit();
-    if (SceneSystemUnit.GetScaleFactor() != 1.0)
-    {
-        //The unit in this example is centimeter.
-        FbxSystemUnit::cm.ConvertScene(m_pScene);
-    }
+    //// Convert Unit System to what is used in this example, if needed
+    //FbxSystemUnit SceneSystemUnit = m_pScene->GetGlobalSettings().GetSystemUnit();
+    //if (SceneSystemUnit.GetScaleFactor() != 1.0)
+    //{
+    //    FbxSystemUnit::cm.ConvertScene(m_pScene);
+    //}
 
     // Takes Too much time....
     // Convert mesh, NURBS and patch into triangle mesh
@@ -380,12 +379,12 @@ void FbxLoader::Load(const char* filename)
         pObject->AddMesh(m_meshes[i]);
     }
 
-    if (m_pSkeleton)
+    if (m_pSkeleton && m_pSkeleton->GetBoneCount() != 0)
     {
         pObject->SetSkeleton(m_pSkeleton);
     }
 
-    if (m_pAnimator)
+    if (m_pAnimator && m_pAnimator->GetCurrentAnimation() != nullptr)
     {
         pObject->SetAnimator(m_pAnimator);
     }

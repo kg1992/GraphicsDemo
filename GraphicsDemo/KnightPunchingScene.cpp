@@ -12,8 +12,7 @@
 #include "Material.h"
 #include "FbxLoader.h"
 #include "System.h"
-
-std::shared_ptr<Mesh> GeneratePlane();
+#include "Geometry.h"
 
 namespace
 {
