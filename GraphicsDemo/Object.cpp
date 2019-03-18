@@ -19,59 +19,7 @@
 namespace
 {
     const int MaximumBoneCount = 128;
-    const char* const JointTransformsUniformName = "jointTransforms[0]";
-
-    void SendMaterial(ShaderProgram& program, Material& material)
-    {
-        if (material.GetAmbientMap() != 0)
-        {
-            glActiveTexture(GL_TEXTURE0);
-            GET_AND_HANDLE_GL_ERROR();
-
-            glBindTexture(GL_TEXTURE_2D, material.GetAmbientMap());
-            GET_AND_HANDLE_GL_ERROR();
-
-            program.TrySendUniform("material.ambientMap", 0);
-        }
-        program.TrySendUniform("material.ka", glm::vec3(material.GetAmbientColor()));
-
-        if (material.GetDiffuseMap() != 0)
-        {
-            glActiveTexture(GL_TEXTURE1);
-            GET_AND_HANDLE_GL_ERROR();
-
-            glBindTexture(GL_TEXTURE_2D, material.GetDiffuseMap());
-            GET_AND_HANDLE_GL_ERROR();
-
-            program.TrySendUniform("material.diffuseMap", 1);
-        }
-        program.TrySendUniform("material.kd", glm::vec3(material.GetDiffuseColor()));
-
-        if (material.GetSpecularMap() != 0)
-        {
-            glActiveTexture(GL_TEXTURE2);
-            GET_AND_HANDLE_GL_ERROR();
-
-            glBindTexture(GL_TEXTURE_2D, material.GetSpecularMap());
-            GET_AND_HANDLE_GL_ERROR();
-
-            program.TrySendUniform("material.specularMap", 2);
-        }
-        program.TrySendUniform("material.ks", material.GetSpecularColor());
-
-        program.TrySendUniform("material.shininess", material.GetShininess());
-
-        if (material.GetNormalMap() != 0)
-        {
-            glActiveTexture(GL_TEXTURE3);
-            GET_AND_HANDLE_GL_ERROR();
-
-            glBindTexture(GL_TEXTURE_2D, material.GetNormalMap());
-            GET_AND_HANDLE_GL_ERROR();
-
-            program.TrySendUniform("material.normalMap", 3);
-        }
-    }
+    const char* const JointTransformsUniformName = "uJointTransforms[0]";
 }
 
 Object::Object()
@@ -162,6 +110,11 @@ void Object::AddMesh(std::shared_ptr<Mesh> mesh)
     m_meshes.push_back(mesh);
 }
 
+int Object::GetMeshCount()
+{
+    return static_cast<int>(m_meshes.size());
+}
+
 std::shared_ptr<Mesh> Object::GetMesh(int index)
 {
     return m_meshes[index];
@@ -184,56 +137,6 @@ void Object::Free()
     m_pAnimator.reset();
 
     m_pSkeleton.reset();
-}
-
-void Object::Render(ShaderProgram& program)
-{
-    program.TrySendUniform("uAnimationEnabled", m_pSkeleton ? GL_TRUE : GL_FALSE);
-    if (m_pSkeleton)
-    {
-        glm::mat4 boneTransforms[MaximumBoneCount];
-        const int BoneCount = m_pSkeleton->GetBoneCount();
-        for (int i = 0; i < BoneCount; ++i)
-        {
-            Bone& bone = m_pSkeleton->GetBoneByIndex(i);
-            boneTransforms[i] = bone.GetAnimationTrasnform();
-        }
-        for (int i = BoneCount; i < MaximumBoneCount; ++i)
-        {
-            boneTransforms[i] = glm::identity<glm::mat4>();
-        }
-
-        program.TrySendUniform(JointTransformsUniformName, BoneCount, GL_FALSE, boneTransforms[0]);
-    }
-
-    for (auto& mesh : m_meshes)
-    {
-        mesh->Apply();
-
-        if (mesh->HasSubMesh())
-        {
-            for (int i = 0; i < mesh->GetSubMeshCount(); ++i)
-            {
-                SendMaterial(program, *m_materials[i]);
-                Mesh::SubMesh subMesh = mesh->GetSubMesh(i);
-                glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
-                GET_AND_HANDLE_GL_ERROR();
-            }
-        }
-        else
-        {
-            if (m_materials.size() == 0)
-            {
-                SendMaterial(program, Material::GetDefaultMaterial());
-            }
-            else
-            {
-                SendMaterial(program, *m_materials[0]);
-            }
-            glDrawArrays(GL_TRIANGLES, 0, mesh->GetAttributeArray(0).GetAttributeCount());
-            GET_AND_HANDLE_GL_ERROR();
-        }
-    }
 }
 
 std::shared_ptr<Skeleton> Object::GetSkeleton()
@@ -350,5 +253,28 @@ void Object::CopyTo(Object& dest)
     {
         dest.m_pAnimator.reset(new Animator);
         m_pAnimator->CopyTo(*dest.m_pAnimator);
+    }
+}
+
+void Object::SendAnimationData(ShaderProgram& program)
+{
+    program.SendUniform("uAnimationEnabled", m_pSkeleton ? GL_TRUE : GL_FALSE);
+    if (m_pSkeleton)
+    {
+        glm::mat4 boneTransforms[MaximumBoneCount];
+        const int BoneCount = m_pSkeleton->GetBoneCount();
+
+        for (int i = 0; i < BoneCount; ++i)
+        {
+            Bone& bone = m_pSkeleton->GetBoneByIndex(i);
+            boneTransforms[i] = bone.GetAnimationTrasnform();
+        }
+
+        for (int i = BoneCount; i < MaximumBoneCount; ++i)
+        {
+            boneTransforms[i] = glm::identity<glm::mat4>();
+        }
+
+        program.SendUniform(JointTransformsUniformName, BoneCount, GL_FALSE, boneTransforms[0]);
     }
 }

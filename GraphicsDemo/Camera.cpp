@@ -43,14 +43,14 @@ const glm::vec3 & Camera::GetCenter()
     return m_center;
 }
 
-void Camera::SetUp(glm::vec3 up)
+void Camera::SetReferenceUp(glm::vec3 up)
 {
     m_up = up;
 
     UpdateEyeMatrix();
 }
 
-void Camera::SetUp(float x, float y, float z)
+void Camera::SetReferenceUp(float x, float y, float z)
 {
     m_up.x = x;
     m_up.y = y;
@@ -59,7 +59,7 @@ void Camera::SetUp(float x, float y, float z)
     UpdateEyeMatrix();
 }
 
-const glm::vec3 & Camera::GetUp()
+const glm::vec3 & Camera::GetReferenceUp()
 {
     return m_up;
 }
@@ -108,4 +108,15 @@ const glm::mat4x4& Camera::EyeMatrix()
 const glm::mat4x4& Camera::ProjectionMatrix()
 {
     return m_projectionMatrix;
+}
+
+glm::vec3 Camera::Forward()
+{
+    return glm::normalize(m_center - m_position);
+}
+
+glm::vec3 Camera::Up()
+{
+    glm::vec3 f = Forward();
+    return m_up - glm::dot(m_up, f) * f;
 }

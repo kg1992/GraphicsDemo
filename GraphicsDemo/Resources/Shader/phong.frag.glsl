@@ -13,31 +13,28 @@ const int ActivePointLightCount = 1;
 const int MaximumSpotLightCount = 5;
 const int ActiveSpotLightCount = 1;
 
-in vec2 vUv;
-in vec3 vEyePosition;
-in vec3 vNormal;
-in vec3 vTangentLights[MaximumPointLightCount];
-in vec3 vTangentViewDir;
+in vec2 vUv; // varying uv
+in vec3 vLightDirs[MaximumPointLightCount]; // varying light direction ( can be view-space or tangent-space vector dending on uNormalMapEnabled)
+in vec3 vViewDir; // varying tangent view direction ( for light calculation in tangent space)
+in vec3 vvNormal; // varying view-space vertex normal
 
-layout( location = 0 ) out vec4 FragColor;
-
-uniform struct LightInfo
+struct LightInfo
 {
 	vec4 position;
 	vec3 la;
 	vec3 l;
-} light[MaximumPointLightCount];
+};
 
-uniform struct SpotLightInfo {
+struct SpotLightInfo {
     vec3 position;  // Position in cam coords
     vec3 l;         // Diffuse/spec intensity
     vec3 la;        // Amb intensity
     vec3 direction; // Direction of the spotlight in cam coords.
     float exponent; // Angular attenuation exponent
     float cutoff;   // Cutoff angle (between 0 and pi/2)
-} spot;
+};
 
-uniform struct MaterialInfo
+struct MaterialInfo
 {
 	vec3 ka;
 	sampler2D ambientMap;
@@ -47,152 +44,55 @@ uniform struct MaterialInfo
 	sampler2D specularMap;
 	float shininess;
 	sampler2D normalMap;
-} material;
+};
 
-vec3 phongModel( int lightIndex, vec3 position, vec3 n );
-vec3 blinnPhongModel( int lightIndex, vec3 position, vec3 n );
-vec3 blinnPhongModelSpot( vec3 position, vec3 n );
-vec3 blinnPhongNormal( vec3 n );
+uniform LightInfo uLights[MaximumPointLightCount];
+uniform SpotLightInfo uSpot;
+uniform MaterialInfo uMaterial;
+uniform bool uNormalMapEnabled; // flag if normal amp is enabled
+
+layout( location = 0 ) out vec4 FragColor;
+
+vec3 blinnPhongNormal( vec3 n, vec3 s, vec3 v);
 
 void main(void)
 {
-	vec3 color;
-//	vec3 vNormalizedNormal = vNormal;
-//	for( int i = 0; i < LightCount; ++i )
-//	{
-//		color += blinnPhongModel(i, vEyePosition, vNormalizedNormal);
-//	}
-//	color += blinnPhongModelSpot(vEyePosition, vNormalizedNormal);
-
-	vec3 norm = texture(material.normalMap, vUv).xyz;
+  vec3 norm;
+  if( uNormalMapEnabled )
+  {
+    // tangent-space normal
+    norm = texture(uMaterial.normalMap, vUv).xyz;
     norm.xy = 2.0 * norm.xy - 1.0;
-	color = blinnPhongNormal(norm);
+    norm = normalize(norm);
+  }
+  else
+  {
+    norm = normalize(vvNormal);
+  }
+    
+  // output color
+  vec3 s = normalize(vLightDirs[0]);
+  vec3 v = normalize(vViewDir);
+  vec3 color = blinnPhongNormal(norm, s, v);
+  
+  // output fragment color
     FragColor = vec4( color, 1.0 );
+
+  
 }
 
-/*
- Function : latticeTest
- Parameters:
-	Scale - the bigger the number, holes will appear more densly.
-	Threshold - 0 < threshold < 1. Lower threshold generates bigger holes.
- Usage : 
-	if( latticeTest(scale, threshold) )
-	{
-		discard;
-	}
- Reference : 
-	OpenGL 4 Shading Language Cookbook : Discarding fragments to create a perforated look
-*/
-bool latticeTest(float scale, float threshold)
-{
-	return all(greaterThan( fract(vUv * scale), vec2(threshold, threshold) ));
-}
+vec3 blinnPhongNormal( vec3 n, vec3 s, vec3 v ) {  
+  vec3 texColor = texture(uMaterial.diffuseMap, vUv).rgb;
 
-vec3 phongModel( int lightIndex, vec3 position, vec3 n )
-{
-	vec3 s;
-	if( light[lightIndex].position.w == 0.0 )
-	{
-		s = normalize(light[lightIndex].position.xyz);
-	}
-	else
-	{
-		s = normalize(light[lightIndex].position.xyz - position);
-	}
-	float sDotN = dot(s, n);
-
-	vec3 ambient = material.ka * light[lightIndex].la;
-
-	vec3 diffuse = material.kd * max(sDotN, 0);
-
-	vec3 spec = vec3(0.0);
-	if( sDotN > 0 ){
-		vec3 r = reflect(-s, n);
-		vec3 v = normalize(-position);
-		spec = material.ks * pow(max(dot(r, v), 0), material.shininess);
-	}
-
-	//return ambient + (diffuse) * light[lightIndex].l;
-	return ambient + (diffuse + spec) * light[lightIndex].l;
-}
-
-vec3 blinnPhongModel( int lightIndex, vec3 position, vec3 n )
-{
-	vec3 s;
-	// the light is directional light
-	if( light[lightIndex].position.w == 0.0 )
-	{
-		s = normalize(light[lightIndex].position.xyz);
-	}
-	// the light is point light
-	else
-	{
-		s = normalize(light[lightIndex].position.xyz - position);
-	}
-
-	float sDotN = dot(s, n);
-	vec4 ambientMapColor = texture(material.ambientMap, vUv);
-	vec3 ambient =  ambientMapColor.rgb + material.ka * light[lightIndex].la;
-
-	vec4 diffuseMapColor = texture(material.diffuseMap, vUv);
-	vec3 diffuse = diffuseMapColor.rgb * max(sDotN, 0);
-
-	vec4 specularMapColor = texture(material.specularMap, vUv);
-	vec3 spec = vec3(0.0);
-	if( sDotN > 0 ){
-		vec3 v = normalize(-position); 
-		vec3 h = normalize(v + s);
-		spec = specularMapColor.rgb * pow(max(dot(h, n), 0), material.shininess);
-	}
-
-	//return ambient + (diffuse) * light[lightIndex].l;
-	return ambient + (diffuse + spec) * light[lightIndex].l;
-}
-
-vec3 blinnPhongModelSpot( vec3 position, vec3 n )
-{
-	vec3 ambient = spot.la * material.ka, diffuse = vec3(0), spec = vec3(0);
-	
-	vec3 s = normalize( spot.position - position );
-
-	float cosAng = dot( -s, normalize(spot.direction) );
-
-	float angle = acos( cosAng );
-
-	float spotScale = 0.0;
-
-	if( angle < spot.cutoff )
-	{
-		spotScale = pow( cosAng, spot.exponent );
-		float sDotN = max( dot(s, n), 0.0 );
-		vec4 diffuseMapColor = texture(material.diffuseMap, vUv);
-		diffuse = diffuseMapColor.rgb * sDotN;
-		if( sDotN > 0.0 )
-		{
-			vec3 v = normalize(-position.xyz);
-			vec3 h = normalize( v + s );
-			spec = material.ks * pow ( max ( dot(h,n), 0.0 ), material.shininess );
-		}
-		
-	}
-
-	return ambient + spotScale * spot.l * (diffuse + spec);
-}
-
-vec3 blinnPhongNormal( vec3 n ) {  
-  vec3 texColor = texture(material.diffuseMap, vUv).rgb;
-
-  vec3 ambient = light[0].la * texColor;
-  vec3 s = normalize( vTangentLights[0] );
+  vec3 ambient = uLights[0].la * texColor;
   float sDotN = max( dot(s,n), 0.0 );
   vec3 diffuse = texColor * sDotN;
   
   vec3 spec = vec3(0.0);
   if( sDotN > 0.0 ) {
-    vec3 v = normalize(vTangentViewDir);
     vec3 h = normalize( v + s );
-    spec = material.ks *
-            pow( max( dot(h,n), 0.0 ), material.shininess );
+    spec = uMaterial.ks *
+           pow( max( dot(h,n), 0.0 ), uMaterial.shininess );
   }
-  return ambient + light[0].l * (diffuse + spec);
+  return ambient + uLights[0].l * (diffuse + spec);
 }

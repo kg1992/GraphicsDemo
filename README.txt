@@ -15,12 +15,14 @@ OpenGL
 glad
 glm
 FbxSdk
-Freetype
+Freetype2
 
 	[ Control ]
 Wheel = Magnify/Minify
 Wheel Down + Mouse Move = Revolve around view center
 Ctrl + Wheel Down + Mosue Move = Magnify/Minify
 Shift + Wheel Down + Mouse Move = Slide Camera
+W, A, S, D, Shift, Space = Control camera
 
 R = Reset Camera
+T = Export Scene

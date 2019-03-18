@@ -27,10 +27,6 @@ public:
         int vertCount;
     };
 
-    void AddAttributeArray(AttributeArray& aa);
-
-    AttributeArray& GetAttributeArray(int index);
-
     void Apply();
 
     void Free();
@@ -47,9 +43,76 @@ public:
 
     void Deserialize(std::istream& is);
 
+    std::shared_ptr<AttributeArray> GetPositionAttributeArray()
+    {
+        return m_position;
+    }
+
+    void SetPositionAttributeArray(std::shared_ptr<AttributeArray> aa)
+    {
+        m_position = aa;
+    }
+
+    std::shared_ptr<AttributeArray> GetUvAttributeArray()
+    {
+        return m_uv;
+    }
+
+    void SetUvAttributeArray(std::shared_ptr<AttributeArray> aa)
+    {
+        m_uv = aa;
+    }
+
+    std::shared_ptr<AttributeArray> GetNormalAttributeArray()
+    {
+        return m_normal;
+    }
+
+    void SetNormalAttributeArray(std::shared_ptr<AttributeArray> aa)
+    {
+        m_normal = aa;
+    }
+
+    std::shared_ptr<AttributeArray> GetBonesAttributeArray()
+    {
+        return m_bones;
+    }
+
+    void SetBonesAttributeArray(std::shared_ptr<AttributeArray> aa)
+    {
+        m_bones = aa;
+    }
+
+    std::shared_ptr<AttributeArray> GetWeightsAttributeArray()
+    {
+        return m_weights;
+    }
+
+    void SetWeightsAttributeArray(std::shared_ptr<AttributeArray> aa)
+    {
+        m_weights = aa;
+    }
+
+    std::shared_ptr<AttributeArray> GetTangentAttributeArray()
+    {
+        return m_tangent;
+    }
+
+    void SetTangentAttributeArray(std::shared_ptr<AttributeArray> aa)
+    {
+        m_tangent = aa;
+    }
+
+    void SetDefaultSubMesh();
+
 private:
     std::vector<SubMesh> m_subMeshes;
-    std::vector<AttributeArray> m_attributeArrays;
+    std::shared_ptr<AttributeArray> m_position;
+    std::shared_ptr<AttributeArray> m_uv;
+    std::shared_ptr<AttributeArray> m_normal;
+    std::shared_ptr<AttributeArray> m_bones;
+    std::shared_ptr<AttributeArray> m_weights;
+    std::shared_ptr<AttributeArray> m_tangent;
 };
 
 #endif MESH_H_

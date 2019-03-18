@@ -770,29 +770,29 @@ void FbxLoader::LoadMesh()
                 begin += subMesh.vertCount;
             }
         }
-        AttributeArray aaPositions(COMPONENT_COUNT_POSITION, GL_FLOAT, 0, 0);
-        aaPositions.Fill(positions.size() * sizeof(positions[0]), positions.data());
-        pMyMesh->AddAttributeArray(aaPositions);
+        std::shared_ptr<AttributeArray> aaPositions(new AttributeArray(COMPONENT_COUNT_POSITION, GL_FLOAT, 0, 0));
+        aaPositions->Fill(positions.size() * sizeof(positions[0]), positions.data());
+        pMyMesh->SetPositionAttributeArray(aaPositions);
 
-        AttributeArray aaUvs(COMPONENT_COUNT_UV, GL_FLOAT, 0, 0);
-        aaUvs.Fill(uvs.size() * sizeof(uvs[0]), uvs.data());
-        pMyMesh->AddAttributeArray(aaUvs);
+        std::shared_ptr<AttributeArray> aaUvs(new AttributeArray(COMPONENT_COUNT_UV, GL_FLOAT, 0, 0));
+        aaUvs->Fill(uvs.size() * sizeof(uvs[0]), uvs.data());
+        pMyMesh->SetUvAttributeArray(aaUvs);
 
-        AttributeArray aaNormals(COMPONENT_COUNT_NORMAL, GL_FLOAT, 0, 0);
-        aaNormals.Fill(normals.size() * sizeof(normals[0]), normals.data());
-        pMyMesh->AddAttributeArray(aaNormals);
+        std::shared_ptr<AttributeArray> aaNormals(new AttributeArray(COMPONENT_COUNT_NORMAL, GL_FLOAT, 0, 0));
+        aaNormals->Fill(normals.size() * sizeof(normals[0]), normals.data());
+        pMyMesh->SetNormalAttributeArray(aaNormals);
 
-        AttributeArray aaBoneIndices(COMPONENT_COUNT_BONE, GL_INT, 0, 0);
-        aaBoneIndices.Fill(boneIndices.size() * sizeof(boneIndices[0]), boneIndices.data());
-        pMyMesh->AddAttributeArray(aaBoneIndices);
+        std::shared_ptr<AttributeArray> aaBoneIndices(new AttributeArray(COMPONENT_COUNT_BONE, GL_INT, 0, 0));
+        aaBoneIndices->Fill(boneIndices.size() * sizeof(boneIndices[0]), boneIndices.data());
+        pMyMesh->SetBonesAttributeArray(aaBoneIndices);
 
-        AttributeArray aaWeights(COMPONENT_COUNT_WEIGHT, GL_FLOAT, 0, 0);
-        aaWeights.Fill(weights.size() * sizeof(weights[0]), weights.data());
-        pMyMesh->AddAttributeArray(aaWeights);
+        std::shared_ptr<AttributeArray> aaWeights(new AttributeArray(COMPONENT_COUNT_WEIGHT, GL_FLOAT, 0, 0));
+        aaWeights->Fill(weights.size() * sizeof(weights[0]), weights.data());
+        pMyMesh->SetWeightsAttributeArray(aaWeights);
 
-        AttributeArray aaTangenets(COMPONENT_COUNT_TANGENT, GL_FLOAT, 0, 0);
-        aaTangenets.Fill(tangents.size() * sizeof(tangents[0]), tangents.data());
-        pMyMesh->AddAttributeArray(aaTangenets);
+        std::shared_ptr<AttributeArray> aaTangenets(new AttributeArray(COMPONENT_COUNT_TANGENT, GL_FLOAT, 0, 0));
+        aaTangenets->Fill(tangents.size() * sizeof(tangents[0]), tangents.data());
+        pMyMesh->SetTangentAttributeArray(aaTangenets);
 
         m_meshes.push_back(pMyMesh);
     });

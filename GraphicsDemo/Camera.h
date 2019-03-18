@@ -16,11 +16,11 @@ public:
 
     const glm::vec3& GetCenter();
 
-    void SetUp(glm::vec3 up);
+    void SetReferenceUp(glm::vec3 up);
 
-    void SetUp(float x, float y, float z);
+    void SetReferenceUp(float x, float y, float z);
 
-    const glm::vec3& GetUp();
+    const glm::vec3& GetReferenceUp();
 
     void LookAt(const glm::vec3& pos, const glm::vec3& center, const glm::vec3& up);
 
@@ -37,6 +37,10 @@ public:
     const glm::mat4x4& EyeMatrix();
 
     const glm::mat4x4& ProjectionMatrix();
+
+    glm::vec3 Forward();
+
+    glm::vec3 Up();
 
 private:
     float m_right;

@@ -59,6 +59,8 @@ namespace
 
     const int ActiveLightCount = 1;
     const int MaximumLightCount = 5;
+    const float CameraWalkSpeed = 10.0f;
+
     FontRenderer s_fontRenderer;
     GLuint s_cubeMap;
 
@@ -130,28 +132,15 @@ GraphicsDemo::GraphicsDemo()
     : m_lastMouseX(0)
     , m_lastMouseY(0)
     , m_mousePosRecordStarted(false)
-    , m_pScene()
+    , m_pScene(new KnightPunchingScene())
 {
+    // m_pScene = LoadMyScene();
 }
 
 void GraphicsDemo::OnStart()
 {
     // Load, compile, link shader programs.
     ShaderPrograms::Init();
-
-    m_pScene = LoadMyScene();
-
-    for (int i = 0; i < 2; ++i)
-    {
-        for (int j = 0; j < 1; ++j)
-        {
-            const float Distance = 100.f;
-            std::shared_ptr<Object> pObject(new Object);
-            m_pScene->GetSceneObject(0)->CopyTo(*pObject);
-            pObject->SetPosition(glm::vec3(Distance * i, 0, Distance * j));
-            m_pScene->AddSceneObject(pObject);
-        }
-    }
     
     m_pScene->Init();
 
@@ -165,7 +154,7 @@ void GraphicsDemo::Update(float dt)
 {
     m_pScene->Update();
 
-    float time = System::Instance()->CurrentTime() * 0.25f;
+    float time = System::Instance()->CurrentTime() * 0.5f;
     float radius = 100.f;
     float x = cosf(time) * radius;
     float y = 150.f;
@@ -225,9 +214,11 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         m_peekViewportRenderer.SetClientRect(width, height);
 
-        if( m_pScene )
+        if (m_pScene)
+        {
             GetCamera().SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
-                0.1f, 1000.0f);
+                0.1f, 10000.0f);
+        }
     }
 
     case WM_MOUSEMOVE:
@@ -282,10 +273,10 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             glm::vec3 r = GetCamera().GetPosition() - GetCamera().GetCenter();
 
             // revolve around center horizontally
-            r = glm::rotate(r, -dx * Speed, GetCamera().GetUp());
+            r = glm::rotate(r, -dx * Speed, GetCamera().GetReferenceUp());
 
             // revolve around center vertically
-            glm::vec3 right = glm::normalize(glm::cross(r, GetCamera().GetUp()));
+            glm::vec3 right = glm::normalize(glm::cross(r, GetCamera().GetReferenceUp()));
             r = glm::rotate(r, dy * Speed, right);
             GetCamera().SetPosition(GetCamera().GetCenter() + r);
         }
@@ -306,10 +297,51 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     }
 
+
+    case WM_KEYDOWN:
+    {
+        Camera& camera = GetCamera();
+        glm::vec3 disp(0.0f);
+        if (wParam == VK_W)
+        {
+            disp += camera.Forward();
+        }
+        if (wParam == VK_A)
+        {
+            disp += glm::cross(camera.GetReferenceUp(), camera.Forward());
+        }
+        if (wParam == VK_S)
+        {
+            disp -= camera.Forward();
+        }
+        if (wParam == VK_D)
+        {
+            disp -= glm::cross(camera.GetReferenceUp(), camera.Forward());
+        }
+        if (wParam == VK_SPACE)
+        {
+            disp += camera.GetReferenceUp();
+        }
+        if (wParam == VK_SHIFT)
+        {
+            disp -= camera.GetReferenceUp();
+        }
+        if (glm::dot(disp, disp) != 0.0f)
+        {
+            camera.MoveBy(glm::normalize(disp) * CameraWalkSpeed);
+        }
+    }
+        break;
+
     case WM_KEYUP:
         if (wParam == VK_R)
         {
             GetCamera().LookAt(glm::vec3(50, 50, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        }
+        if (wParam == VK_T)
+        {
+            std::ofstream ofs("Resources/Scene/MyScene.dat", std::ios::binary | std::ios::out);
+            m_pScene->Serialize(ofs);
         }
         break;
 
@@ -318,7 +350,7 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_RBUTTONDOWN:case WM_RBUTTONUP:
     case WM_MBUTTONDOWN:case WM_MBUTTONUP:
     case WM_KILLFOCUS: case WM_SETFOCUS:
-    case WM_KEYDOWN: break;
+        break;
     }
 }
 

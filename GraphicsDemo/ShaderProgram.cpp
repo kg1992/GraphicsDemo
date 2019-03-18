@@ -17,7 +17,7 @@ GLint ShaderProgram::GetUniformLocation(const char* name)
 {
     GLint location = glGetUniformLocation(m_program, name);
     GET_AND_HANDLE_GL_ERROR();
-    if (location == -1) DebugBreak();
+    assert(location != -1);
     return location;
 }
 
@@ -79,21 +79,18 @@ GLuint ShaderProgram::CompileShaderFromSource(GLenum type, const char* source)
     glCompileShader(shader);
     GET_AND_HANDLE_GL_ERROR();
 
-    // Test If Success
-    GLint success = GL_TRUE;
+    GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     GET_AND_HANDLE_GL_ERROR();
 
     if (success == GL_FALSE)
     {
-        return 0;
-    }
-
-    std::string infoLog = GetShaderInfoLog(shader);
-    if (infoLog.size() != 0)
-    {
-        std::cerr << __FUNCTION__ << " : Failed to compile shader. Info log : " << std::endl
-            << infoLog << std::endl;
+        std::string infoLog = GetShaderInfoLog(shader);
+        if (infoLog.size() != 0)
+        {
+            std::cerr << __FUNCTION__ << " : Failed to compile shader. Info log : " << std::endl
+                << infoLog << std::endl;
+        }
     }
 
     return shader;
@@ -157,6 +154,7 @@ bool ShaderProgram::InitBySource(const char* name, const char* vertexShaderSourc
 
 void ShaderProgram::Use()
 {
+    assert(m_program != 0);
     glUseProgram(m_program);
     GET_AND_HANDLE_GL_ERROR();
 }

@@ -55,9 +55,12 @@ std::shared_ptr<Mesh> GenerateCube()
     };
 
     std::shared_ptr<Mesh> pMesh(new Mesh());
-    AttributeArray aaPositions(3, GL_FLOAT, 0, 0);
-    aaPositions.Fill(sizeof(vertex_positions), (void*)vertex_positions);
-    pMesh->AddAttributeArray(aaPositions);
+    std::shared_ptr<AttributeArray> aaPositions(new AttributeArray(3, GL_FLOAT, 0, 0));
+    aaPositions->Fill(sizeof(vertex_positions), (void*)vertex_positions);
+    pMesh->SetPositionAttributeArray(aaPositions);
+
+    pMesh->SetDefaultSubMesh();
+
     return pMesh;
 }
 
@@ -76,9 +79,9 @@ std::shared_ptr<Mesh> GeneratePlane()
     };
 
     std::shared_ptr<Mesh> pMesh(new Mesh());
-    AttributeArray aaPosition(3, GL_FLOAT, 0, 0);
-    aaPosition.Fill(sizeof(positions), positions);
-    pMesh->AddAttributeArray(aaPosition);
+    std::shared_ptr<AttributeArray> aaPosition(new AttributeArray(3, GL_FLOAT, 0, 0));
+    aaPosition->Fill(sizeof(positions), positions);
+    pMesh->SetPositionAttributeArray(aaPosition);
 
     float uvs[] = 
     {
@@ -90,9 +93,10 @@ std::shared_ptr<Mesh> GeneratePlane()
         1.0f, 1.0f,
         0.0f, 1.0f
     };
-    AttributeArray aaUv(2, GL_FLOAT, 0, 0);
-    aaUv.Fill(sizeof(uvs), uvs);
-    pMesh->AddAttributeArray(aaUv);
+
+    std::shared_ptr<AttributeArray> aaUv(new AttributeArray(2, GL_FLOAT, 0, 0));
+    aaUv->Fill(sizeof(uvs), uvs);
+    pMesh->SetUvAttributeArray(aaUv);
 
     float normals[] =
     {
@@ -105,9 +109,11 @@ std::shared_ptr<Mesh> GeneratePlane()
         0, 1.0f, 0,
     };
 
-    AttributeArray aaNormal(3, GL_FLOAT, 0, 0);
-    aaNormal.Fill(sizeof(normals), normals);
-    pMesh->AddAttributeArray(aaNormal);
+    std::shared_ptr<AttributeArray> aaNormal(new AttributeArray(3, GL_FLOAT, 0, 0));
+    aaNormal->Fill(sizeof(normals), normals);
+    pMesh->SetNormalAttributeArray(aaNormal);
+
+    pMesh->SetDefaultSubMesh();
 
     return pMesh;
 }

@@ -53,14 +53,14 @@ public:
     // Adds a mesh to be rendered.
     void AddMesh(std::shared_ptr<Mesh> mesh);
 
+    // Gets mesh count
+    int GetMeshCount();
+
     // Gets 'index'th mesh
     std::shared_ptr<Mesh> GetMesh(int index);
 
     // Free object items
     void Free();
-
-    // Renders object with given program.
-    void Render(ShaderProgram& program);
 
     // Gets skeleton associated with this object.
     std::shared_ptr<Skeleton> GetSkeleton();
@@ -79,6 +79,9 @@ public:
 
     // Duplicate object
     void CopyTo(Object& dest);
+
+    // Sends animation data to shader program
+    void SendAnimationData(ShaderProgram& program);
 
 private:
     glm::vec3 m_position;

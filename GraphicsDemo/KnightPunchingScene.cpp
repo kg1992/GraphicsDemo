@@ -45,8 +45,13 @@ void KnightPunchingScene::Init()
     obj = loader.GetObjectByIndex(0);
     m_objects.push_back(obj);
 
-    // Add ground
-    AddGround();
+    // Coast
+    loader.Load("./Resources/Terrain/Coast.fbx");
+    obj = loader.GetObjectByIndex(0);
+    m_objects.push_back(obj);
+
+    //// Add ground
+    //AddGround();
 }
 
 void KnightPunchingScene::Update()
@@ -60,16 +65,16 @@ void KnightPunchingScene::Update()
 
     //////////
 
-    glm::vec3 d = m_spotLights[0].GetDirection();
-    glm::vec3 longitudialTangent = glm::cross(d, glm::vec3(0, 1, 0));
-    glm::vec3 latittudialTangent = glm::cross(d, longitudialTangent);
-    const float SecPerFrame = 0.016f;
-    const float g = 9.8f;
-    s_speedX += g * -d.x* SecPerFrame;
-    d.x += s_speedX * SecPerFrame;
-    s_speedZ += g * -d.z * SecPerFrame;
-    d.z += s_speedZ * SecPerFrame;
-    m_spotLights[0].SetDirection(glm::normalize(d));
+    //glm::vec3 d = m_spotLights[0].GetDirection();
+    //glm::vec3 longitudialTangent = glm::cross(d, glm::vec3(0, 1, 0));
+    //glm::vec3 latittudialTangent = glm::cross(d, longitudialTangent);
+    //const float SecPerFrame = 0.016f;
+    //const float g = 9.8f;
+    //s_speedX += g * -d.x* SecPerFrame;
+    //d.x += s_speedX * SecPerFrame;
+    //s_speedZ += g * -d.z * SecPerFrame;
+    //d.z += s_speedZ * SecPerFrame;
+    //m_spotLights[0].SetDirection(glm::normalize(d));
 
     this->Scene::Update();
 }

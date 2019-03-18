@@ -12,11 +12,18 @@
 #include "Object.h"
 #include "Scene.h"
 #include "Errors.h"
+#include "Mesh.h"
+
+namespace
+{
+    const int MaxViewportCount = 8;
+}
 
 void PeekViewportRenderer::Render(std::shared_ptr<Scene> pScene)
 {
-    unsigned int peekViewWidth = m_clientWidth / 8;
-    unsigned int peekViewHeight = m_clientHeight / 8;
+    // viewport width
+    unsigned int peekViewWidth = m_clientWidth / MaxViewportCount;
+    unsigned int peekViewHeight = m_clientHeight / MaxViewportCount;
     ShaderProgram programs[] = { ShaderPrograms::s_position,
                                  ShaderPrograms::s_uv,
                                  ShaderPrograms::s_normal,
@@ -40,7 +47,18 @@ void PeekViewportRenderer::RenderObject(Camera& camera, ShaderProgram& program, 
 {
     SendMatrices(camera, program, object);
 
-    object.Render(program);
+    for (int i = 0; i < object.GetMeshCount(); ++i)
+    {
+        std::shared_ptr<Mesh> pMesh = object.GetMesh(i);
+        pMesh->Apply();
+
+        for (int j = 0; j < pMesh->GetSubMeshCount(); ++j)
+        {
+            Mesh::SubMesh subMesh = pMesh->GetSubMesh(j);
+            glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
+            GET_AND_HANDLE_GL_ERROR();
+        }
+    }
 }
 
 void PeekViewportRenderer::SendMatrices(Camera& camera, ShaderProgram& program, Object& object)
