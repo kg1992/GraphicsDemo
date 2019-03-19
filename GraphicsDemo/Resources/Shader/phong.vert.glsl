@@ -119,11 +119,11 @@ void main(void)
 		for( int i = 0; i < ActivePointLightCount; ++ i)
 		{
 			// view-space light direction
-			vLightDirs[i] = uNormalMatrix * vec3(uLights[i].position - vVertexPosition);
+			vLightDirs[i] = vec3(uLights[i].position - vVertexPosition);
 		}
 
 		// view-space view direction
-		vViewDir = uNormalMatrix * -vec3(vVertexPosition);
+		vViewDir = -vec3(vVertexPosition);
 	}
 	
 	// output varying vertex uv
