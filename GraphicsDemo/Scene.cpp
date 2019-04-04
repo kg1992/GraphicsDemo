@@ -13,12 +13,52 @@
 #include "Object.h"
 #include "Serialization.h"
 
+void Scene::Init() {}
+
 void Scene::Update()
 {
     for (std::shared_ptr<Object> pObject : m_objects)
     {
         pObject->Update();
     }
+}
+
+void Scene::Free() {}
+
+Camera & Scene::GetCamera() { return m_camera; }
+
+std::shared_ptr<Object> Scene::GetSceneObject(int index) {
+    return m_objects[index];
+}
+
+int Scene::GetSceneObjectCount()
+{
+    return static_cast<int>(m_objects.size());
+}
+
+void Scene::AddSceneObject(std::shared_ptr<Object> pObject)
+{
+    m_objects.push_back(pObject);
+}
+
+PointLight & Scene::GetPointLight(int index)
+{
+    return m_pointLights[index];
+}
+
+int Scene::GetPointLightCount()
+{
+    return static_cast<int>(m_pointLights.size());
+}
+
+SpotLight & Scene::GetSpotLight(int index)
+{
+    return m_spotLights[index];
+}
+
+int Scene::GetSpotLightCount()
+{
+    return static_cast<int>(m_spotLights.size());
 }
 
 void Scene::Serialize(std::ostream& os) const

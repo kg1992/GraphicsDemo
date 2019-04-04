@@ -19,47 +19,27 @@ class Object;
 class Scene
 {
 public:
-    virtual void Init() {}
+    virtual void Init();
 
     virtual void Update();
 
-    virtual void Free() {}
+    virtual void Free();
 
-    Camera& GetCamera() { return m_camera;  }
+    Camera& GetCamera();
 
-    std::shared_ptr<Object> GetSceneObject(int index) {
-        return m_objects[index];
-    }
+    std::shared_ptr<Object> GetSceneObject(int index);
 
-    int GetSceneObjectCount()
-    {
-        return static_cast<int>(m_objects.size());
-    }
+    int GetSceneObjectCount();
 
-    void AddSceneObject(std::shared_ptr<Object> pObject)
-    {
-        m_objects.push_back(pObject);
-    }
+    void AddSceneObject(std::shared_ptr<Object> pObject);
 
-    PointLight& GetPointLight(int index)
-    {
-        return m_pointLights[index];
-    }
+    PointLight& GetPointLight(int index);
 
-    int GetPointLightCount()
-    {
-        return static_cast<int>(m_pointLights.size());
-    }
+    int GetPointLightCount();
 
-    SpotLight& GetSpotLight(int index)
-    {
-        return m_spotLights[index];
-    }
+    SpotLight& GetSpotLight(int index);
 
-    int GetSpotLightCount()
-    {
-        return static_cast<int>(m_spotLights.size());
-    }
+    int GetSpotLightCount();
 
     void Serialize(std::ostream& os) const;
 
@@ -67,6 +47,7 @@ public:
 
 protected:
     std::vector<std::shared_ptr<Object>> m_objects;
+    std::vector<DirectionalLight> m_directionalLights;
     std::vector<PointLight> m_pointLights;
     std::vector<SpotLight> m_spotLights;
     Camera m_camera;

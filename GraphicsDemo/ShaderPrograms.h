@@ -22,6 +22,7 @@ public:
     static ShaderProgram s_axes;
     static ShaderProgram s_normalMap;
     static ShaderProgram s_skybox;
+    static ShaderProgram s_screen;
 
     static void Init();
 };

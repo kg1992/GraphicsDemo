@@ -216,6 +216,7 @@
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="System.h" />
     <ClInclude Include="SystemComponent.h" />
+    <ClInclude Include="Terrain.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Animation.cpp" />

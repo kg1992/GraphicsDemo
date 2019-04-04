@@ -1,6 +1,4 @@
 /*
-    Animator.cpp
-
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
     References :
@@ -8,8 +6,6 @@
 
     Dependencies :
         glm - vector, matrix representation
-
-    Animator class implementation.
 */
 #include "Common.h"
 #include "Animator.h"
@@ -28,8 +24,6 @@ std::shared_ptr<Animation> Animator::GetCurrentAnimation()
 {
     return m_currentAnimation;
 }
-
-
 
 void Animator::SetCurrentAnimation(std::shared_ptr<Animation> pAnimation)
 {
@@ -96,10 +90,11 @@ std::map<std::string, glm::mat4> Animator::InterpolatePoses(KeyFrame & prev, Key
 {
     std::map<std::string, glm::mat4> currentPose;
 
-    auto nextPose = next.GetPose();
+    // Pose is set of transforms for bone
+    const std::map<std::string, BoneTransform>& NextPose = next.GetPose();
     for (auto& kv : prev.GetPose())
     {
-        BoneTransform nextTransform = nextPose[kv.first];
+        BoneTransform nextTransform = NextPose.at(kv.first);
         currentPose[kv.first] = BoneTransform::Interpolate(kv.second, nextTransform, t).GetTransformMatrix();
     }
 
@@ -108,18 +103,25 @@ std::map<std::string, glm::mat4> Animator::InterpolatePoses(KeyFrame & prev, Key
 
 void Animator::ApplyPoseToBones(std::map<std::string, glm::mat4>& pose, std::shared_ptr<Skeleton> pSkeleton)
 {
+    // Transform matrix of parent born is used in calculation of descendent nodes.
+    // This map caches transform matrix per Bone
     std::unordered_map<Bone*, glm::mat4> globalMatrixCache;
-    for (int i = 0; i < pSkeleton->GetBoneCount(); ++i)
+    const int BoneCount = pSkeleton->GetBoneCount();
+    for (int i = 0; i < BoneCount; ++i)
     {
-        Bone* bone = &pSkeleton->GetBoneByIndex(i);
-        int parentIndex = bone->GetParent();
+        Bone* pBone = &pSkeleton->GetBoneByIndex(i);
+        // Parent bone index. Root bone has parent id DUMMY_PARENT_NODE_INDEX
+        int parentIndex = pBone->GetParent();
         assert(parentIndex < i);
-        Bone* parent = bone->GetParent() != Skeleton::DUMMY_PARENT_NODE_INDEX ? &pSkeleton->GetBoneByIndex(parentIndex) : nullptr;
-        glm::mat4 parentMatrix = parent ? globalMatrixCache[parent] : glm::identity<glm::mat4>();
-        glm::mat4& localTransform = pose[bone->GetName()];
-        glm::mat4 currentTransform = parentMatrix * localTransform;
-        globalMatrixCache[bone] = currentTransform;
-        glm::mat4 animationTransform = currentTransform * bone->GetInvLinkTransform() * bone->GetTransform();
-        bone->SetAnimationTransform(animationTransform);
+        // Parent bone.
+        Bone* pParent = pBone->GetParent() != Skeleton::DUMMY_PARENT_NODE_INDEX
+            ? &pSkeleton->GetBoneByIndex(parentIndex)
+            : nullptr;
+        // Parent bone transform matrix
+        const glm::mat4 ParentMatrix = pParent ? globalMatrixCache[pParent] : glm::identity<glm::mat4>();
+        const glm::mat4& LocalTransform = pose[pBone->GetName()];
+        const glm::mat4 CurrentTransform = ParentMatrix * LocalTransform;
+        globalMatrixCache[pBone] = CurrentTransform;
+        pBone->SetAnimationTransform(CurrentTransform * pBone->GetInvLinkTransform() * pBone->GetTransform());
     }
 }

@@ -37,6 +37,8 @@ void ShaderPrograms::Init()
         .Init("NormalMap", ResolveShaderFilename("basic.vert.glsl"), ResolveShaderFilename("normalMap.frag.glsl"));
     s_skybox
         .Init("Skybox", ResolveShaderFilename("skybox.vert.glsl"), ResolveShaderFilename("skybox.frag.glsl"));
+    s_screen
+        .Init("Screen", ResolveShaderFilename("screen.vert.glsl"), ResolveShaderFilename("screen.frag.glsl"));
 }
 
 ShaderProgram ShaderPrograms::s_position;
@@ -48,3 +50,4 @@ ShaderProgram ShaderPrograms::s_phong;
 ShaderProgram ShaderPrograms::s_axes;
 ShaderProgram ShaderPrograms::s_normalMap;
 ShaderProgram ShaderPrograms::s_skybox;
+ShaderProgram ShaderPrograms::s_screen;

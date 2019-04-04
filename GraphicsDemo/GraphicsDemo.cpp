@@ -1,6 +1,4 @@
 /*
-    GraphicsDemo.cpp
-
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
     class GraphicsDemo implementation.
@@ -20,42 +18,45 @@
 
 namespace
 {
-    const int VK_0 = 0x30;
-    const int VK_1 = 0x31;
-    const int VK_2 = 0x32;
-    const int VK_3 = 0x33;
-    const int VK_4 = 0x34;
-    const int VK_5 = 0x35;
-    const int VK_6 = 0x36;
-    const int VK_7 = 0x37;
-    const int VK_8 = 0x38;
-    const int VK_9 = 0x39;
-    const int VK_A = 0x41;
-    const int VK_B = 0x42;
-    const int VK_C = 0x43;
-    const int VK_D = 0x44;
-    const int VK_E = 0x45;
-    const int VK_F = 0x46;
-    const int VK_G = 0x47;
-    const int VK_H = 0x48;
-    const int VK_I = 0x49;
-    const int VK_J = 0x4A;
-    const int VK_K = 0x4B;
-    const int VK_L = 0x4C;
-    const int VK_M = 0x4D;
-    const int VK_N = 0x4E;
-    const int VK_O = 0x4F;
-    const int VK_P = 0x50;
-    const int VK_Q = 0x51;
-    const int VK_R = 0x52;
-    const int VK_S = 0x53;
-    const int VK_T = 0x54;
-    const int VK_U = 0x55;
-    const int VK_V = 0x56;
-    const int VK_W = 0x57;
-    const int VK_X = 0x58;
-    const int VK_Y = 0x59;
-    const int VK_Z = 0x5A;
+    enum VKCode
+    {
+        VK_0 = 0x30,
+        VK_1 = 0x31,
+        VK_2 = 0x32,
+        VK_3 = 0x33,
+        VK_4 = 0x34,
+        VK_5 = 0x35,
+        VK_6 = 0x36,
+        VK_7 = 0x37,
+        VK_8 = 0x38,
+        VK_9 = 0x39,
+        VK_A = 0x41,
+        VK_B = 0x42,
+        VK_C = 0x43,
+        VK_D = 0x44,
+        VK_E = 0x45,
+        VK_F = 0x46,
+        VK_G = 0x47,
+        VK_H = 0x48,
+        VK_I = 0x49,
+        VK_J = 0x4A,
+        VK_K = 0x4B,
+        VK_L = 0x4C,
+        VK_M = 0x4D,
+        VK_N = 0x4E,
+        VK_O = 0x4F,
+        VK_P = 0x50,
+        VK_Q = 0x51,
+        VK_R = 0x52,
+        VK_S = 0x53,
+        VK_T = 0x54,
+        VK_U = 0x55,
+        VK_V = 0x56,
+        VK_W = 0x57,
+        VK_X = 0x58,
+        VK_Y = 0x59,
+        VK_Z = 0x5A
+    };
 
     const int ActiveLightCount = 1;
     const int MaximumLightCount = 5;
@@ -66,6 +67,10 @@ namespace
     bool s_bCommandInputState = false;
     std::string s_command;
     float s_lastTime;
+
+    GLuint renderTexture;
+    GLuint frameBuffer;
+    GLuint depthBuffer;
 
     GLuint LoadCubeMap()
     {
@@ -201,6 +206,8 @@ void GraphicsDemo::OnStart()
 {
     // Load, compile, link shader programs.
     ShaderPrograms::Init();
+
+    m_sceneRenderer.SetRendererProgram(ShaderPrograms::s_phong);
     
     m_pScene->Init();
 
@@ -208,6 +215,45 @@ void GraphicsDemo::OnStart()
 
     s_fontRenderer.SetFont("./fonts/times.ttf");
     s_fontRenderer.SetGlyphSize(48);
+
+    glGenFramebuffers(1, &frameBuffer);
+    GET_AND_HANDLE_GL_ERROR();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+    GET_AND_HANDLE_GL_ERROR();
+
+    glGenTextures(1, &renderTexture);
+    GET_AND_HANDLE_GL_ERROR();
+    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    GET_AND_HANDLE_GL_ERROR();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_clientWidth, m_clientHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    GET_AND_HANDLE_GL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    GET_AND_HANDLE_GL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    GET_AND_HANDLE_GL_ERROR();
+
+    // Bind the texture to the FBO 
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+    GET_AND_HANDLE_GL_ERROR();
+
+    // Create the depth buffer 
+    glGenRenderbuffers(1, &depthBuffer);
+    GET_AND_HANDLE_GL_ERROR();
+    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+    GET_AND_HANDLE_GL_ERROR();
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_clientWidth, m_clientHeight);
+    GET_AND_HANDLE_GL_ERROR();
+
+    // Bind the depth buffer to the FBO 
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
+    GET_AND_HANDLE_GL_ERROR();
+
+    // Set the target for the fragment shader outputs 
+    GLenum drawBufs[] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, drawBufs);
+    GET_AND_HANDLE_GL_ERROR();
 }
 
 void GraphicsDemo::Update(float dt)
@@ -224,28 +270,41 @@ void GraphicsDemo::Update(float dt)
 
 void GraphicsDemo::Render()
 {
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    // Sets viewport to entire window
     glViewport(0, 0, m_clientWidth, m_clientHeight);
     GET_AND_HANDLE_GL_ERROR();
 
+    // Sets clear color to cyan
     glClearColor(0, 0.8f, 0.7f, 1.0f);
     GET_AND_HANDLE_GL_ERROR();
 
+    // Clear screen
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     GET_AND_HANDLE_GL_ERROR();
 
+    // Render skybox
     m_skyboxRenderer.Render(GetCamera(), s_cubeMap);
 
+    // Render scene
     m_sceneRenderer.Render(m_pScene);
 
+    // Render gizmo
     m_gizmoRenderer.Render(m_pScene);
 
+    // Render FPS
     DisplayFps();
 
+    // Render command input
     DisplayCommand();
 
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     GET_AND_HANDLE_GL_ERROR();
+    
+    RenderScreen();
 
+    // Render peek viewports
     m_peekViewportRenderer.Render(m_pScene);
 }
 
@@ -258,9 +317,11 @@ void GraphicsDemo::Free()
         glDeleteTextures(1, &s_cubeMap);
         s_cubeMap = 0;
     }
+
+    glDeleteTextures(1, &renderTexture);
+    glDeleteRenderbuffers(1, &depthBuffer);
+    glDeleteFramebuffers(1, &frameBuffer);
 }
-
-
 
 // Ref: https://docs.microsoft.com/en-us/windows/desktop/inputdev/using-keyboard-input
 void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -269,16 +330,21 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
     case WM_SIZE:
     {
+        // Window is resized. This message is also created when window is first created and shown.
         int width = LOWORD(lParam);
         int height = HIWORD(lParam);
 
+        // Saved client width and height
         m_clientWidth = width;
         m_clientHeight = height;
 
+        // Font renderer needs to know screen metrics
         s_fontRenderer.SetScreenSize(static_cast<float>(width), static_cast<float>(height));
 
+        // Peek viewport renderer also needs to know screen metrics
         m_peekViewportRenderer.SetClientRect(width, height);
 
+        // Camera needs to know screen metrics to generate projection matrix
         if (m_pScene)
         {
             GetCamera().SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
@@ -461,7 +527,7 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             disp += camera.GetReferenceUp();
         }
-        if (wParam == VK_SHIFT)
+        if (wParam == VK_Q)
         {
             disp -= camera.GetReferenceUp();
         }
@@ -532,4 +598,40 @@ bool GraphicsDemo::SaveScene(const std::string& sceneName)
 Camera& GraphicsDemo::GetCamera()
 {
     return m_pScene->GetCamera();
+}
+
+void GraphicsDemo::RenderScreen()
+{
+    ShaderProgram program = ShaderPrograms::s_screen;
+    program.Use();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    GET_AND_HANDLE_GL_ERROR();
+    glActiveTexture(GL_TEXTURE0);
+    GET_AND_HANDLE_GL_ERROR();
+    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    GET_AND_HANDLE_GL_ERROR();
+    program.SendUniform("uScreen", 0);
+    program.SendUniform("uResolution"
+        , static_cast<float>(m_clientWidth)
+        , static_cast<float>(m_clientHeight));
+    program.SendUniform("uTime", System::Instance()->CurrentTime());
+
+    // Sets viewport to entire window
+    glViewport(0, 0, m_clientWidth, m_clientHeight);
+    GET_AND_HANDLE_GL_ERROR();
+
+    // Sets clear color to cyan
+    glClearColor(0, 0.8f, 0.7f, 1.0f);
+    GET_AND_HANDLE_GL_ERROR();
+
+    // Clear screen
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    GET_AND_HANDLE_GL_ERROR();
+
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    GET_AND_HANDLE_GL_ERROR();
+
+    // clear depth buffer
+    glClear(GL_DEPTH_BUFFER_BIT);
+    GET_AND_HANDLE_GL_ERROR();
 }

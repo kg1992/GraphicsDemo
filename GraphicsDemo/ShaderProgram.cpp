@@ -303,6 +303,16 @@ bool ShaderProgram::TrySendUniform(const char * name, unsigned int ui)
     return true;
 }
 
+void ShaderProgram::SendUniform(const char* name, const glm::vec2& v)
+{
+    SendUniform(name, v.x, v.y);
+}
+
+bool ShaderProgram::TrySendUniform(const char * name, const glm::vec2 & v)
+{
+    return TrySendUniform(name, v.x, v.y);
+}
+
 void ShaderProgram::SendUniform(const char* name, const glm::vec3& v)
 {
     SendUniform(name, v.x, v.y, v.z);

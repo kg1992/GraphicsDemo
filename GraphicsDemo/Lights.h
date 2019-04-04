@@ -17,6 +17,14 @@ public:
     glm::vec3 ls;
 };
 
+class DirectionalLight
+{
+    glm::vec3 direction;
+    glm::vec3 la;
+    glm::vec3 ld;
+    glm::vec3 ls;
+};
+
 class SpotLight
 {
 public:

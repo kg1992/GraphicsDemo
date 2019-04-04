@@ -48,6 +48,8 @@ public:
     bool TrySendUniform(const char* name, int i);
     void SendUniform(const char* name, unsigned int ui);
     bool TrySendUniform(const char* name, unsigned int ui);
+    void SendUniform(const char* name, const glm::vec2& v);
+    bool TrySendUniform(const char* name, const glm::vec2& v);
     void SendUniform(const char* name, const glm::vec3& v);
     bool TrySendUniform(const char* name, const glm::vec3& v);
     void SendUniform(const char* name, const glm::vec4& v);

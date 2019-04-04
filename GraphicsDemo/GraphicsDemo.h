@@ -47,6 +47,7 @@ private:
 
     bool SaveScene(const std::string& sceneName);
     bool LoadScene(const std::string& sceneName);
+    void RenderScreen();
 };
 
 #endif
