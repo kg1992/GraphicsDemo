@@ -69,6 +69,7 @@ uniform DirectionalLightInfo uDirectionalLights[MaximumDirectionalLightCount];
 uniform MaterialInfo uMaterial;
 uniform bool uNormalMapEnabled; // flag if normal amp is enabled
 uniform sampler2D uShadowMap;
+uniform bool uShadowMapRender;
 
 layout( location = 0 ) out vec4 FragColor;
 
@@ -76,6 +77,12 @@ vec3 blinnPhongNormal( vec3 n, vec3 s, vec3 v, vec3 la, vec3 l, float shadowFact
 
 void main(void)
 {
+  if( uShadowMapRender )
+  {
+    // Depth value is automatically written. Fragmentshader doesn't need to do anything
+    return;
+  }
+
   vec3 norm;
   if( uNormalMapEnabled )
   {

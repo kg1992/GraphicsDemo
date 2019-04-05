@@ -21,7 +21,6 @@ public:
     static ShaderProgram s_normalMap;
     static ShaderProgram s_skybox;
     static ShaderProgram s_screen;
-    static ShaderProgram s_depth;
     static ShaderProgram s_texture;
 
     static void Init();

@@ -34,6 +34,8 @@ void SceneRenderer::Render(PerspectiveCamera& camera, std::shared_ptr<Scene> pSc
     GET_AND_HANDLE_GL_ERROR();
     m_program.SendUniform("uShadowMap", 11);
 
+    m_program.SendUniform("uShadowMapRender", GL_FALSE);
+
     const int PointLightCount = std::min(MaximumLightCount
         , pScene->GetPointLightCount());
     m_program.SendUniform("uActivePointLightCount", PointLightCount);

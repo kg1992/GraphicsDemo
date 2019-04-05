@@ -49,9 +49,6 @@ void ShaderPrograms::Init()
     s_screen.Init("Screen"
         , ResolveShaderFilename("screen.vert.glsl")
         , ResolveShaderFilename("screen.frag.glsl"));
-    s_depth.Init("Depth"
-        , ResolveShaderFilename("depth.vert.glsl")
-        , ResolveShaderFilename("depth.frag.glsl"));
     s_texture.Init("Texture"
         , ResolveShaderFilename("screen.vert.glsl")
         , ResolveShaderFilename("texture.frag.glsl"));
@@ -67,5 +64,4 @@ ShaderProgram ShaderPrograms::s_axes;
 ShaderProgram ShaderPrograms::s_normalMap;
 ShaderProgram ShaderPrograms::s_skybox;
 ShaderProgram ShaderPrograms::s_screen;
-ShaderProgram ShaderPrograms::s_depth;
 ShaderProgram ShaderPrograms::s_texture;

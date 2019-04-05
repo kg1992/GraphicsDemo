@@ -210,14 +210,21 @@ void GraphicsDemo::Render()
             glClear(GL_DEPTH_BUFFER_BIT);
             GET_AND_HANDLE_GL_ERROR();
 
-            ShaderProgram& program = ShaderPrograms::s_depth;
+            ShaderProgram& program = ShaderPrograms::s_phong;
             program.Use();
+            program.SendUniform("uShadowMapRender", GL_TRUE);
 
             for (int j = 0; j < m_pScene->GetSceneObjectCount(); ++j)
             {
                 Object& object = *m_pScene->GetSceneObject(j);
-                const glm::mat4 mvp = P * V * object.GetTransformMatrix();
-                program.SendUniform("uMvpMatrix", 1, false, mvp);
+                const glm::mat4 mv = V * object.GetTransformMatrix();
+                program.SendUniform("uMvMatrix", 1, false, mv);
+                glm::mat3x3 normalMatrix = glm::transpose(glm::inverse(mv));
+                program.SendUniform("uNormalMatrix", 1, false, normalMatrix);
+                program.SendUniform("uVpMatrix", 1, false, P);
+
+                object.SendAnimationData(program);
+
                 for (int k = 0; k < object.GetMeshCount(); ++k)
                 {
                     std::shared_ptr<Mesh> mesh(object.GetMesh(k));
