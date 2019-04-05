@@ -25,7 +25,12 @@ void Scene::Update()
 
 void Scene::Free() {}
 
-Camera & Scene::GetCamera() { return m_camera; }
+int Scene::GetCameraCount()
+{
+    return static_cast<int>(m_cameras.size());
+}
+
+PerspectiveCamera & Scene::GetCamera(int index) { return m_cameras[index]; }
 
 std::shared_ptr<Object> Scene::GetSceneObject(int index) {
     return m_objects[index];
@@ -61,6 +66,16 @@ int Scene::GetSpotLightCount()
     return static_cast<int>(m_spotLights.size());
 }
 
+DirectionalLight& Scene::GetDirectionalLight(int index)
+{
+    return m_directionalLights[index];
+}
+
+int Scene::GetDirectionalLightCount()
+{
+    return static_cast<int>(m_directionalLights.size());
+}
+
 void Scene::Serialize(std::ostream& os) const
 {
     int objectCount = static_cast<int>(m_objects.size());
@@ -84,7 +99,12 @@ void Scene::Serialize(std::ostream& os) const
         Serialization::Write(os, m_spotLights[i]);
     }
 
-    Serialization::Write(os, m_camera);
+    int cameraCount = static_cast<int>(m_cameras.size());
+    Serialization::Write(os, cameraCount);
+    for (int i = 0; i < cameraCount; ++i)
+    {
+        Serialization::Write(os, m_cameras[i]);
+    }
 }
 
 void Scene::Deserialize(std::istream& is)
@@ -114,5 +134,12 @@ void Scene::Deserialize(std::istream& is)
         Serialization::Read(is, m_spotLights[i]);
     }
 
-    Serialization::Read(is, m_camera);
+    int cameraCount;
+    Serialization::Read(is, cameraCount);
+    m_spotLights.resize(cameraCount);
+    for (int i = 0; i < cameraCount; ++i)
+    {
+        Serialization::Read(is, m_cameras[i]);
+    }
 }
+

@@ -1,6 +1,4 @@
-/*
-	axes.vert.glsl
-	
+/*	
 	axes vertex shader. Axes information is embeded into the shader. Uses no attribute.
 
 	always draw using :

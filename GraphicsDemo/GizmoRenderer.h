@@ -10,21 +10,22 @@
 class Scene;
 class Object;
 class ShaderProgram;
-class Camera;
+class PerspectiveCamera;
 
 class GizmoRenderer
 {
 public:
-    void Render(std::shared_ptr<Scene> pScene);
+    void Render(PerspectiveCamera& camera, std::shared_ptr<Scene> pScene);
 
 private:
     float m_clientWidth;
     float m_clientHeight;
 
-    void SendMatrices(Camera& camera, ShaderProgram& program, Object& object);
-    void DrawPointLights(std::shared_ptr<Scene> pScene);
-    void DrawSpotLight(std::shared_ptr<Scene> pScene);
-    void DrawObjectCenter(std::shared_ptr<Scene> pScene);
+    void SendMatrices(PerspectiveCamera& camera, ShaderProgram& program, Object& object);
+    void DrawPointLights(PerspectiveCamera& camera, std::shared_ptr<Scene> pScene);
+    void DrawSpotLight(PerspectiveCamera& camera, std::shared_ptr<Scene> pScene);
+    void DrawObjectCenter(PerspectiveCamera& camera, std::shared_ptr<Scene> pScene);
+    void DrawPerspectiveCamera(PerspectiveCamera& camera, std::shared_ptr<Scene> pScene);
 };
 
 #endif

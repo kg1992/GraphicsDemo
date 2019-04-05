@@ -1,19 +1,14 @@
 /*
-	phong.vert.glsl
-	
-	phong vertex shader used for rendering scene in GraphicsDemo project.
-
 	Reference :
 		https://github.com/PacktPublishing/OpenGL-4-Shading-Language-Cookbook-Third-Edition
 */
 #version 430 core
 
 const int MaximumPointLightCount = 5;
-const int ActivePointLightCount = 1;
 const int MaximumSpotLightCount = 5;
-const int ActiveSpotLightCount = 1;
 const int MaximumWeights = 3;
 const int MaximumBoneCount = 128;
+const int MaximumDirectionalLightCount = 5;
 
 layout (location = 0) in vec4 aPosition; 	// attribuet vertex position
 layout (location = 1) in vec2 aUv;			// attribute vertex uv
@@ -24,7 +19,7 @@ layout (location = 5) in vec4 aTangent;		// attribuet vertex tangent
 
 struct LightInfo
 {
-	vec4 position;
+    vec4 position;
 	vec3 la;
 	vec3 l;
 };
@@ -38,12 +33,23 @@ struct SpotLightInfo {
     float cutoff;   // Cutoff angle (between 0 and pi/2)
 };
 
+struct DirectionalLightInfo {
+	vec3 direction;
+	vec3 l;
+	vec3 la;
+    sampler2D shadowMap;
+    bool castShadow;
+	mat4 shadowMatrix;
+};
+
+uniform int uActivePointLightCount;
+uniform int uActiveSpotLightCount;
+uniform int uActiveDirectionalLightCount;
 uniform LightInfo uLights[MaximumPointLightCount]; // light information
-
 uniform SpotLightInfo uSpot; // spot light information
-
+uniform DirectionalLightInfo uDirectionalLights[MaximumDirectionalLightCount];
 uniform mat4 uJointTransforms[MaximumBoneCount]; // Bone pose transforms
-
+uniform mat4 uMwMatrix; // model-world matrix
 uniform mat4 uMvMatrix; // modle-view matrix
 uniform mat3 uNormalMatrix; // model-view normal matrix
 uniform mat4 uVpMatrix; // view-projection matrix
@@ -52,17 +58,20 @@ uniform bool uNormalMapEnabled; // flag if normal amp is enabled
 
 out vec2 vUv; 			// varying uv
 out vec3 vLightDirs[MaximumPointLightCount]; // varying light direction ( can be view-space or tangent-space vector dending on uNormalMapEnabled)
+out vec3 vDirectionalLightDirs[MaximumDirectionalLightCount];
 out vec3 vViewDir; // varying tangent view direction ( for light calculation in tangent space)
 out vec3 vvNormal; // varying view-space vertex normal
+out vec4 vShadowCoord[MaximumDirectionalLightCount];
 
 void main(void)
 {
+	////////// Apply Animation //////////
 	// animation pose applied model space vertex position
 	vec4 totalLocalPos = vec4(0.0);
 	// animation pose applied model space vertex normal
 	vec4 totalNormal = vec4(0.0);
 
-	// apply animation
+	// apply animation. totalLocalPos will be weighted sum of affected bone transform multiplied by bind vertex position.
 	if( uAnimationEnabled )
 	{
 		for( int i = 0; i < MaximumWeights; ++i )
@@ -86,10 +95,10 @@ void main(void)
 	}
 
 	// view-spcae normal normalized
-	vec3 viewNormal = normalize(uNormalMatrix * aNormal);
+	vec3 viewNormal = normalize(uNormalMatrix * vec3(totalNormal));
 
 	// view-space vertex position
-	vec4 vVertexPosition = uMvMatrix * totalLocalPos;
+	vec4 viewVertexPosition = uMvMatrix * totalLocalPos;
 
 	if( uNormalMapEnabled )
 	{
@@ -105,25 +114,40 @@ void main(void)
 		);
 
 		// For each light
-		for( int i = 0; i < ActivePointLightCount; ++ i)
+		for( int i = 0; i < uActivePointLightCount; ++ i)
 		{
 			// tangent-space light direction
-			vLightDirs[i] = vtMatrix * vec3(uLights[i].position - vVertexPosition);
+			vLightDirs[i] = vtMatrix * vec3(uLights[i].position - viewVertexPosition);
+		}
+		for( int i = 0; i < uActiveDirectionalLightCount; ++ i)
+		{
+			// tangent-space light direction
+			vDirectionalLightDirs[i] = vtMatrix * -vec3(uDirectionalLights[i].direction);
 		}
 		
 		// tangent-space view direction
-		vViewDir = vtMatrix * -vec3(vVertexPosition);
+		vViewDir = vtMatrix * -vec3(viewVertexPosition);
 	}
 	else
 	{
-		for( int i = 0; i < ActivePointLightCount; ++ i)
+		for( int i = 0; i < uActivePointLightCount; ++ i)
 		{
 			// view-space light direction
-			vLightDirs[i] = vec3(uLights[i].position - vVertexPosition);
+			vLightDirs[i] = vec3(uLights[i].position - viewVertexPosition);
+		}
+		for( int i = 0; i < uActiveDirectionalLightCount; ++ i)
+		{
+			// view-space light direction
+			vDirectionalLightDirs[i] = -vec3(uDirectionalLights[i].direction);
 		}
 
 		// view-space view direction
-		vViewDir = -vec3(vVertexPosition);
+		vViewDir = -vec3(viewVertexPosition);
+	}
+
+	for( int i = 0; i < uActiveDirectionalLightCount; ++i)
+	{
+		vShadowCoord[i] = uDirectionalLights[i].shadowMatrix * uMwMatrix * totalLocalPos;
 	}
 	
 	// output varying vertex uv
@@ -134,5 +158,4 @@ void main(void)
 	
 	// output ndc-space vertex position
 	gl_Position = uVpMatrix * uMvMatrix * totalLocalPos;
-	
 }

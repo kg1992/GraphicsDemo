@@ -21,7 +21,6 @@ public:
 
 private:
     void AddGround();
-    void PrepareLights();
 };
 
 #endif

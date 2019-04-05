@@ -16,7 +16,6 @@
 
 namespace
 {
-    const int ActiveLightCount = 1;
     const int MaximumLightCount = 5;
     float s_spotSpeed = 4.0f;
     float s_speedX = -1.0;
@@ -27,14 +26,36 @@ namespace
 KnightPunchingScene::KnightPunchingScene()
     : Scene()
 {
+    {
+        PerspectiveCamera camera;
+        camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
+        m_cameras.push_back(camera);
+    }
+
+    {
+        PerspectiveCamera camera;
+        camera.LookAt(glm::vec3(-50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
+        m_cameras.push_back(camera);
+    }
 }
 
 void KnightPunchingScene::Init()
 {
-    PrepareLights();
+    {
+        DirectionalLight light;
+        light.SetDirection(glm::normalize(glm::vec3(1.f, -1.f, 1.f)));
+        light.SetAmbientColor(glm::vec3(0.1f, 0.1f, 0.1f));
+        light.SetDiffuse(glm::vec3(1.0f, 1.0f, 1.0f));
+        light.SetCastShadow(true);
+        std::shared_ptr<ShadowMap2D> pShadowMap(new ShadowMap2D());
 
-    // Initial m_camera location.
-    m_camera.LookAt(glm::vec3(50, 50, 50), glm::vec3(), glm::vec3(0, 1, 0));
+        const float Maximum = 600.0f;
+        const float Boundary = 500.0f;
+
+        pShadowMap->Init(1024, 1024, Boundary * 2, Boundary * 2, Maximum);
+        light.SetShadowMap(pShadowMap);
+        m_directionalLights.push_back(light);
+    }
 
     // Load Objecrts
     FbxLoader loader;
@@ -52,29 +73,35 @@ void KnightPunchingScene::Init()
 
     //// Add ground
     //AddGround();
+
+    std::shared_ptr<Mesh> pCube = GenerateCube();
+    for (int i = 0; i < 12; ++i)
+    {
+        std::shared_ptr<Object> pObject(new Object);
+        
+        pObject->AddMesh(pCube);
+
+        const float Radius = 200.0f;
+        const float YStep = 50.0f;
+        const glm::vec3 Position = glm::vec3(
+            Radius * std::cos(i*0.5f),
+            i * YStep,
+            Radius * std::sin(i*0.5f));
+        const float Scale = 100.0f;
+        pObject->SetPosition(Position);
+        pObject->SetScale(glm::vec3(Scale));
+        
+        m_objects.push_back(pObject);
+    }
 }
 
 void KnightPunchingScene::Update()
 {
     float time = System::Instance()->CurrentTime() * 0.25f;
-    float radius = 100.f;
-    float x = cosf(time) * radius;
-    float y = 150.f;
-    float z = sinf(time) * radius;
-    m_pointLights[0].position = glm::vec4(x, y, z, 1.0f);
-
-    //////////
-
-    //glm::vec3 d = m_spotLights[0].GetDirection();
-    //glm::vec3 longitudialTangent = glm::cross(d, glm::vec3(0, 1, 0));
-    //glm::vec3 latittudialTangent = glm::cross(d, longitudialTangent);
-    //const float SecPerFrame = 0.016f;
-    //const float g = 9.8f;
-    //s_speedX += g * -d.x* SecPerFrame;
-    //d.x += s_speedX * SecPerFrame;
-    //s_speedZ += g * -d.z * SecPerFrame;
-    //d.z += s_speedZ * SecPerFrame;
-    //m_spotLights[0].SetDirection(glm::normalize(d));
+    float x = cosf(time);
+    float y = -1.f;
+    float z = sinf(time);
+    m_directionalLights[0].SetDirection(glm::normalize(glm::vec3(x, y, z)));
 
     this->Scene::Update();
 }
@@ -99,25 +126,4 @@ void KnightPunchingScene::AddGround()
     pMaterial->SetShininess(50.0f);
 
     pGround->AddMaterial(pMaterial);
-}
-
-void KnightPunchingScene::PrepareLights()
-{
-    PointLight pl;
-
-    pl.la = glm::vec3(0.1f, 0.1f, 0.1f);
-    pl.ld = glm::vec3(1.0f, 1.0f, 1.0f);
-    pl.ls = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    m_pointLights.push_back(pl);
-
-    //////////
-
-    m_spotLights.resize(1);
-    m_spotLights[0].SetPosition(glm::vec3(.0f, 100.0f, .0f));
-    m_spotLights[0].SetDirection(glm::normalize(glm::vec3(0.0f, -1.0f, -0.3f)));
-    m_spotLights[0].SetDiffuse(glm::vec3(1.0f, 1.0f, 1.0f));
-    m_spotLights[0].SetAmbientColor(glm::vec3(.0f, .0f, .0f));
-    m_spotLights[0].SetCutoff(glm::radians(50.f));
-    m_spotLights[0].SetExponent(50.0f);
 }

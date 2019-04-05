@@ -1,8 +1,4 @@
 /*
-	basic.vert.glsl
-	
-	basic vertex shader used for rendering most of the objects in GraphicsDemo project.
-
 	Reference :
 		https://github.com/PacktPublishing/OpenGL-4-Shading-Language-Cookbook-Third-Edition
 */

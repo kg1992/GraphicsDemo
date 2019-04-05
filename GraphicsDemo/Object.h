@@ -47,6 +47,9 @@ public:
     // Adds a material.
     void AddMaterial(std::shared_ptr<Material> ptr);
 
+    // Gets Material count.
+    int GetMaterialCount();
+
     // Gets 'index'th material
     std::shared_ptr<Material> GetMaterial(int index);
 

@@ -10,7 +10,7 @@
 
 #include "SystemComponent.h"
 #include "Lights.h"
-#include "Camera.h"
+#include "PerspectiveCamera.h"
 #include "SceneRenderer.h"
 #include "PeekViewportRenderer.h"
 #include "GizmoRenderer.h"
@@ -42,8 +42,9 @@ private:
     PeekViewportRenderer m_peekViewportRenderer;
     GizmoRenderer m_gizmoRenderer;
     SkyboxRenderer m_skyboxRenderer;
+    int m_activeCameraIndex;
 
-    Camera& GetCamera();
+    PerspectiveCamera& GetCamera();
 
     bool SaveScene(const std::string& sceneName);
     bool LoadScene(const std::string& sceneName);

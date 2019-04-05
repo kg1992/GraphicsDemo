@@ -1,6 +1,4 @@
 /*
-    Lights.h
-
     Author : Lee Kyunggeun(kyunggeun1992@gmail.com)
 
     PointLight, SpotLight, DirecitonalLight definition.
@@ -8,24 +6,9 @@
 #ifndef LIGHTS_H_
 #define LIGHTS_H_
 
-class PointLight
-{
-public:
-    glm::vec3 position;
-    glm::vec3 la;
-    glm::vec3 ld;
-    glm::vec3 ls;
-};
+#include "ShadowMap.h"
 
-class DirectionalLight
-{
-    glm::vec3 direction;
-    glm::vec3 la;
-    glm::vec3 ld;
-    glm::vec3 ls;
-};
-
-class SpotLight
+class Light
 {
 public:
     const glm::vec3& GetPosition();
@@ -51,16 +34,55 @@ public:
     float GetCutoff();
 
     void SetCutoff(float cutoff);
-    
 
 private:
     glm::vec3 m_position;
+    glm::vec3 m_direction;
     glm::vec3 m_la;
     glm::vec3 m_ld;
     glm::vec3 m_ls;
-    glm::vec3 m_direction;
     float m_exponent;
     float m_cutoff;
+};
+
+class PointLight : public Light
+{
+};
+
+class DirectionalLight : public Light
+{
+public:
+    DirectionalLight();
+
+    ~DirectionalLight();
+
+    void SetCastShadow(bool castShadow);
+
+    bool GetCastShadow();
+
+    void SetShadowMap(std::shared_ptr<ShadowMap2D> shadowMap)
+    {
+        m_shadowMap = shadowMap;
+    }
+
+    std::shared_ptr<ShadowMap2D> GetShadowMap()
+    {
+        return m_shadowMap;
+    }
+
+private:
+    bool m_castShadow;
+    std::shared_ptr<ShadowMap2D> m_shadowMap;
+    
+};
+
+class SpotLight : public Light
+{
+public:
+    
+    
+
+private:
 };
 
 #endif

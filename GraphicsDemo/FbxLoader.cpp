@@ -34,7 +34,7 @@
 #include "SystemComponent.h"
 #include "Errors.h"
 #include "Object.h"
-#include "Camera.h"
+#include "PerspectiveCamera.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "stb_image.h"

@@ -43,7 +43,7 @@ void PeekViewportRenderer::Render(std::shared_ptr<Scene> pScene)
     }
 }
 
-void PeekViewportRenderer::RenderObject(Camera& camera, ShaderProgram& program, Object& object)
+void PeekViewportRenderer::RenderObject(PerspectiveCamera& camera, ShaderProgram& program, Object& object)
 {
     SendMatrices(camera, program, object);
 
@@ -61,7 +61,7 @@ void PeekViewportRenderer::RenderObject(Camera& camera, ShaderProgram& program, 
     }
 }
 
-void PeekViewportRenderer::SendMatrices(Camera& camera, ShaderProgram& program, Object& object)
+void PeekViewportRenderer::SendMatrices(PerspectiveCamera& camera, ShaderProgram& program, Object& object)
 {
     program.SendUniform("mwMatrix", 1, false, object.GetTransformMatrix());
     glm::mat4x4 mvMatrix = camera.EyeMatrix() * object.GetTransformMatrix();

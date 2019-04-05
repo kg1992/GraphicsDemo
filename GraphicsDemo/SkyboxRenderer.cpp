@@ -1,10 +1,10 @@
 #include "Common.h"
 #include "SkyboxRenderer.h"
-#include "Camera.h"
+#include "PerspectiveCamera.h"
 #include "ShaderPrograms.h"
 #include "Errors.h"
 
-void SkyboxRenderer::Render(Camera& camera, GLuint cubeMap)
+void SkyboxRenderer::Render(PerspectiveCamera& camera, GLuint cubeMap)
 {
     ShaderProgram& program = ShaderPrograms::s_skybox;
 

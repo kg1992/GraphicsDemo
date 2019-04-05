@@ -8,7 +8,7 @@
 #ifndef PEEK_VIEWPORT_RENDERER_H_
 #define PEEK_VIEWPORT_RENDERER_H_
 
-class Camera;
+class PerspectiveCamera;
 class ShaderProgram;
 class Object;
 class Scene;
@@ -28,8 +28,8 @@ private:
     int m_clientWidth;
     int m_clientHeight;
 
-    void RenderObject(Camera& camera, ShaderProgram& program, Object& object);
-    void SendMatrices(Camera& camera, ShaderProgram& program, Object& object);
+    void RenderObject(PerspectiveCamera& camera, ShaderProgram& program, Object& object);
+    void SendMatrices(PerspectiveCamera& camera, ShaderProgram& program, Object& object);
 };
 
 #endif

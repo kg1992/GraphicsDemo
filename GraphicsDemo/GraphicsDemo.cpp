@@ -15,49 +15,12 @@
 #include "FbxLoader.h"
 #include "KnightPunchingScene.h"
 #include "Serialization.h"
+#include "VKCode.h"
+#include "ScreenBuffer.h"
+#include "Mesh.h"
 
 namespace
 {
-    enum VKCode
-    {
-        VK_0 = 0x30,
-        VK_1 = 0x31,
-        VK_2 = 0x32,
-        VK_3 = 0x33,
-        VK_4 = 0x34,
-        VK_5 = 0x35,
-        VK_6 = 0x36,
-        VK_7 = 0x37,
-        VK_8 = 0x38,
-        VK_9 = 0x39,
-        VK_A = 0x41,
-        VK_B = 0x42,
-        VK_C = 0x43,
-        VK_D = 0x44,
-        VK_E = 0x45,
-        VK_F = 0x46,
-        VK_G = 0x47,
-        VK_H = 0x48,
-        VK_I = 0x49,
-        VK_J = 0x4A,
-        VK_K = 0x4B,
-        VK_L = 0x4C,
-        VK_M = 0x4D,
-        VK_N = 0x4E,
-        VK_O = 0x4F,
-        VK_P = 0x50,
-        VK_Q = 0x51,
-        VK_R = 0x52,
-        VK_S = 0x53,
-        VK_T = 0x54,
-        VK_U = 0x55,
-        VK_V = 0x56,
-        VK_W = 0x57,
-        VK_X = 0x58,
-        VK_Y = 0x59,
-        VK_Z = 0x5A
-    };
-
     const int ActiveLightCount = 1;
     const int MaximumLightCount = 5;
     const float CameraWalkSpeed = 10.0f;
@@ -68,9 +31,7 @@ namespace
     std::string s_command;
     float s_lastTime;
 
-    GLuint renderTexture;
-    GLuint frameBuffer;
-    GLuint depthBuffer;
+    ScreenBuffer s_screenBuffer;
 
     GLuint LoadCubeMap()
     {
@@ -198,7 +159,11 @@ GraphicsDemo::GraphicsDemo()
     : m_lastMouseX(0)
     , m_lastMouseY(0)
     , m_mousePosRecordStarted(false)
-    , m_pScene(new KnightPunchingScene())
+    , m_pScene(
+        //new ShadowTestScene()
+        new KnightPunchingScene()
+    )
+    , m_activeCameraIndex(0)
 {
 }
 
@@ -216,61 +181,65 @@ void GraphicsDemo::OnStart()
     s_fontRenderer.SetFont("./fonts/times.ttf");
     s_fontRenderer.SetGlyphSize(48);
 
-    glGenFramebuffers(1, &frameBuffer);
-    GET_AND_HANDLE_GL_ERROR();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-    GET_AND_HANDLE_GL_ERROR();
-
-    glGenTextures(1, &renderTexture);
-    GET_AND_HANDLE_GL_ERROR();
-    glBindTexture(GL_TEXTURE_2D, renderTexture);
-    GET_AND_HANDLE_GL_ERROR();
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_clientWidth, m_clientHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-    GET_AND_HANDLE_GL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    GET_AND_HANDLE_GL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    GET_AND_HANDLE_GL_ERROR();
-
-    // Bind the texture to the FBO 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
-    GET_AND_HANDLE_GL_ERROR();
-
-    // Create the depth buffer 
-    glGenRenderbuffers(1, &depthBuffer);
-    GET_AND_HANDLE_GL_ERROR();
-    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
-    GET_AND_HANDLE_GL_ERROR();
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_clientWidth, m_clientHeight);
-    GET_AND_HANDLE_GL_ERROR();
-
-    // Bind the depth buffer to the FBO 
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
-    GET_AND_HANDLE_GL_ERROR();
-
-    // Set the target for the fragment shader outputs 
-    GLenum drawBufs[] = { GL_COLOR_ATTACHMENT0 };
-    glDrawBuffers(1, drawBufs);
-    GET_AND_HANDLE_GL_ERROR();
+    s_screenBuffer.Init(m_clientWidth, m_clientHeight);
 }
 
 void GraphicsDemo::Update(float dt)
 {
     m_pScene->Update();
-
-    float time = System::Instance()->CurrentTime() * 0.5f;
-    float radius = 100.f;
-    float x = cosf(time) * radius;
-    float y = 150.f;
-    float z = sinf(time) * radius;
-    m_pScene->GetPointLight(0).position = glm::vec4(x, y, z, 1.0f);
 }
 
 void GraphicsDemo::Render()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+    ////////// Rendering shadow map //////////
+    for (int i = 0; i < m_pScene->GetDirectionalLightCount(); ++i)
+    {
+        DirectionalLight& light = m_pScene->GetDirectionalLight(i);
+        if (light.GetCastShadow())
+        {
+            std::shared_ptr<ShadowMap2D> pShadowMap = light.GetShadowMap();
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, pShadowMap->GetFrameBuffer());
+            GET_AND_HANDLE_GL_ERROR();
+            glViewport(0, 0, pShadowMap->GetMapWidth(), pShadowMap->GetMapHeight());
+            GET_AND_HANDLE_GL_ERROR();
+            const float Distance = 600.0f;
+            const float Boundary = 600.0f;
+            const glm::mat4 V = glm::lookAtRH(-light.GetDirection(), glm::vec3(), glm::vec3(0, 1, 0));
+            const glm::mat4 P = glm::orthoRH(-Boundary, Boundary, -Boundary, Boundary, -Distance, Distance);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            GET_AND_HANDLE_GL_ERROR();
+
+            ShaderProgram& program = ShaderPrograms::s_depth;
+            program.Use();
+
+            for (int j = 0; j < m_pScene->GetSceneObjectCount(); ++j)
+            {
+                Object& object = *m_pScene->GetSceneObject(j);
+                const glm::mat4 mvp = P * V * object.GetTransformMatrix();
+                program.SendUniform("uMvpMatrix", 1, false, mvp);
+                for (int k = 0; k < object.GetMeshCount(); ++k)
+                {
+                    std::shared_ptr<Mesh> mesh(object.GetMesh(k));
+                    mesh->Apply(); 
+
+                    for (int i = 0; i < mesh->GetSubMeshCount(); ++i)
+                    {
+                        Mesh::SubMesh subMesh = mesh->GetSubMesh(i);
+                        glDrawArrays(GL_TRIANGLES, subMesh.begin, subMesh.vertCount);
+                        GET_AND_HANDLE_GL_ERROR();
+                    }
+                }
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            GET_AND_HANDLE_GL_ERROR();
+        }
+    }
+
+    ////////// Render Scene //////////
+    glBindFramebuffer(GL_FRAMEBUFFER, s_screenBuffer.GetFrameBuffer());
+    GET_AND_HANDLE_GL_ERROR();
 
     // Sets viewport to entire window
     glViewport(0, 0, m_clientWidth, m_clientHeight);
@@ -286,12 +255,12 @@ void GraphicsDemo::Render()
 
     // Render skybox
     m_skyboxRenderer.Render(GetCamera(), s_cubeMap);
-
+        
     // Render scene
-    m_sceneRenderer.Render(m_pScene);
+    m_sceneRenderer.Render(GetCamera(),m_pScene);
 
     // Render gizmo
-    m_gizmoRenderer.Render(m_pScene);
+    m_gizmoRenderer.Render(GetCamera(), m_pScene);
 
     // Render FPS
     DisplayFps();
@@ -299,6 +268,7 @@ void GraphicsDemo::Render()
     // Render command input
     DisplayCommand();
 
+    // Reset Framebuffer to default ( Window client area )
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     GET_AND_HANDLE_GL_ERROR();
     
@@ -306,6 +276,32 @@ void GraphicsDemo::Render()
 
     // Render peek viewports
     m_peekViewportRenderer.Render(m_pScene);
+
+    ////////// Peek ShadowMap //////////
+    for (int i = 0; i < m_pScene->GetDirectionalLightCount(); ++i)
+    {
+        DirectionalLight& light = m_pScene->GetDirectionalLight(i);
+        if (light.GetCastShadow())
+        {
+            std::shared_ptr<ShadowMap2D> pShadowMap = light.GetShadowMap();
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            GET_AND_HANDLE_GL_ERROR();
+
+            glViewport(0, 300, 200, 200);
+            GET_AND_HANDLE_GL_ERROR();
+
+            ShaderPrograms::s_texture.Use();
+            glActiveTexture(GL_TEXTURE0);
+            GET_AND_HANDLE_GL_ERROR();
+            glBindTexture(GL_TEXTURE_2D, pShadowMap->GetDepthTexture());
+            GET_AND_HANDLE_GL_ERROR();
+            ShaderPrograms::s_texture.SendUniform("uTexture", 0);
+
+            glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+            GET_AND_HANDLE_GL_ERROR();
+        }
+    }
 }
 
 void GraphicsDemo::Free()
@@ -318,9 +314,7 @@ void GraphicsDemo::Free()
         s_cubeMap = 0;
     }
 
-    glDeleteTextures(1, &renderTexture);
-    glDeleteRenderbuffers(1, &depthBuffer);
-    glDeleteFramebuffers(1, &frameBuffer);
+    s_screenBuffer.Free();
 }
 
 // Ref: https://docs.microsoft.com/en-us/windows/desktop/inputdev/using-keyboard-input
@@ -347,8 +341,13 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         // Camera needs to know screen metrics to generate projection matrix
         if (m_pScene)
         {
-            GetCamera().SetFrustum(glm::pi<float>() * 0.25f, width / 0.5f, height / 0.5f,
-                0.1f, 10000.0f);
+            const int CameraCount = m_pScene->GetCameraCount();
+            for (int i = 0; i < CameraCount; ++i)
+            {
+                m_pScene->GetCamera(i).SetFrustum(glm::pi<float>() * 0.25f, 
+                    static_cast<float>(width) / height,
+                    0.1f, 10000.0f);
+            }
         }
     }
 
@@ -505,7 +504,7 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             return;
         }
 
-        Camera& camera = GetCamera();
+        PerspectiveCamera& camera = GetCamera();
         glm::vec3 disp(0.0f);
         if (wParam == VK_W)
         {
@@ -530,6 +529,10 @@ void GraphicsDemo::OnWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         if (wParam == VK_Q)
         {
             disp -= camera.GetReferenceUp();
+        }
+        if (wParam == VK_TAB)
+        {
+            m_activeCameraIndex = (m_activeCameraIndex + 1) % m_pScene->GetCameraCount();
         }
         if (glm::dot(disp, disp) != 0.0f)
         {
@@ -595,20 +598,18 @@ bool GraphicsDemo::SaveScene(const std::string& sceneName)
     return true;
 }
 
-Camera& GraphicsDemo::GetCamera()
+PerspectiveCamera& GraphicsDemo::GetCamera()
 {
-    return m_pScene->GetCamera();
+    return m_pScene->GetCamera(m_activeCameraIndex);
 }
 
 void GraphicsDemo::RenderScreen()
 {
-    ShaderProgram program = ShaderPrograms::s_screen;
+    ShaderProgram& program = ShaderPrograms::s_screen;
     program.Use();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    GET_AND_HANDLE_GL_ERROR();
     glActiveTexture(GL_TEXTURE0);
     GET_AND_HANDLE_GL_ERROR();
-    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    glBindTexture(GL_TEXTURE_2D, s_screenBuffer.GetTexture());
     GET_AND_HANDLE_GL_ERROR();
     program.SendUniform("uScreen", 0);
     program.SendUniform("uResolution"

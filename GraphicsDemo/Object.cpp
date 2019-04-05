@@ -100,6 +100,11 @@ void Object::AddMaterial(std::shared_ptr<Material> pMaterial)
     m_materials.push_back(pMaterial);
 }
 
+int Object::GetMaterialCount()
+{
+    return static_cast<int>(m_materials.size());
+}
+
 std::shared_ptr<Material> Object::GetMaterial(int index)
 {
     return m_materials[index];
